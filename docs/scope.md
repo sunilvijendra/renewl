@@ -5,7 +5,7 @@
 > Read top-to-bottom in ~10 minutes. Update any time a decision changes.
 
 **Last updated:** 2026-04-25
-**Status:** MVP integration-complete on `dev/mvp1` and smoke-tested end-to-end on `renewl-live.vercel.app` (steps 1–9 of the plan green: waitlist intact, magic-link sign-in, manual entry, paste parse, upload parse with vision, edit, delete, replace flow at cap, renewal-alert cron with dedup, 24h file cleanup cron). Open: promotion to prod (point the live `renewl` Vercel project at a Convex prod deployment of `renewl-app` and retire `renewl-live`), then opening to waitlist users.
+**Status:** MVP integration-complete on `dev/mvp1` and smoke-tested end-to-end on `renewl-live.vercel.app` (waitlist intact, magic-link sign-in, manual entry, paste parse, upload parse with vision, edit, delete, replace flow at cap, renewal-alert cron with dedup, 24h file cleanup cron). On `dev/mvp1`, `/` now shows the MVP product landing (CTA → `/sign-in` or `/dashboard` if authed); the email-capture waitlist form has been removed in preparation for merge to `main`. Open: prod-promotion checklist below in §10 must complete before `dev/mvp1` is merged to `main`.
 **Live URL:** https://renewls.vercel.app (Vercel project: `renewl`)
 **Dev URL:** https://renewl-live.vercel.app (Vercel project: `renewl-live`, formerly `renewls-dev`; deploys from `dev/mvp1`, reads from Convex project `renewl-app` / deployment `kindly-quail-882`)
 
@@ -156,6 +156,14 @@ Planned (MVP) — written to `convex/schema.ts` on 2026-04-25:
 - **Optional "essential" flag on each item?** — would let the discovery UX highlight non-essentials the user might forget. Parked for MVP unless the "find the ones you forgot" story feels weak without it.
 - **Domain.** A real domain was bought + verified in Resend on 2026-04-25 (used as the magic-link + alert sender on `renewl-live`). Open: whether to also point the public `renewls.vercel.app` waitlist at a custom domain before opening the MVP.
 - **Prod vs dev Convex deployment.** The legacy waitlist `renewl` Vercel project still reads from `silent-albatross-349` (dev). The MVP build runs against a separate `renewl-app` project on `kindly-quail-882` (also dev), served by the `renewl-live` Vercel project. Needs a prod Convex deployment of `renewl-app`, with the `renewl` Vercel project re-pointed there before opening to waitlist users — at which point `renewl-live` is retired.
+
+  **Pre-merge checklist (must complete in this order before `dev/mvp1` → `main`):**
+  1. Promote `renewl-app` to a Convex prod deployment (`npx convex deploy --prod` or via dashboard); copy all env vars from `kindly-quail-882` to the new prod deployment (`OPENAI_API_KEY`, `AUTH_RESEND_KEY`, `RESEND_API_KEY`, `AUTH_EMAIL_FROM`, `ALERTS_EMAIL_FROM`, `SITE_URL=https://renewls.vercel.app`, `JWT_PRIVATE_KEY`, `JWKS`).
+  2. Push the schema and functions to that prod deployment (same `npx convex deploy --prod`).
+  3. Re-point the `renewl` Vercel project's env vars: `NEXT_PUBLIC_CONVEX_URL` and `NEXT_PUBLIC_CONVEX_SITE_URL` to the prod deployment URLs (not `silent-albatross-349`).
+  4. Decide on the existing `silent-albatross-349` waitlist data — either migrate emails to the new deployment's `waitlist` table (or send a one-shot invite blast) before turning that deployment off.
+  5. Merge `dev/mvp1` → `main`. Once Vercel auto-deploys, sanity-check `renewls.vercel.app` against the same smoke test.
+  6. Retire the `renewl-live` Vercel project.
 - **Post-launch analytics.** None wired yet. Week-one question: do we install Plausible / PostHog / Vercel Analytics?
 - **Delete-receipt UX.** 24h auto-delete is decided; do we also give users a "delete now" button? Probably yes, cheap to add.
 - **Parse accuracy eval.** §11 revisit threshold is <90% on a 100-receipt eval. No eval set built yet. Open: whether to run one before public open or wait for real user reports.
@@ -251,6 +259,7 @@ Append-only. Most recent first. Every material decision gets an entry. Format:
 
 ## 12. Changelog
 
+- **2026-04-25** — Replaced the waitlist landing on `dev/mvp1` (`/` route) with the MVP product landing: same headline/bullets/trust line, but the email-capture form is now a "Sign in" CTA → `/sign-in` (server-aware: shows "Open dashboard" → `/dashboard` if already authed). `app/waitlist-form.tsx` deleted. `convex/waitlist.ts` and the `waitlist` table kept (preserves data on `silent-albatross-349` until a migration plan lands; harmless on `kindly-quail-882`). Added the prod-promotion pre-merge checklist to §10.
 - **2026-04-25** — Renamed the **dev** Vercel project (formerly `renewls-dev`) to `renewl-live`; URL is now `https://renewl-live.vercel.app`. The live waitlist project (`renewl` on Vercel, URL `renewls.vercel.app`) is unchanged. Updated scope-doc references throughout.
 - **2026-04-25** — End-to-end smoke test on the dev URL (then `renewls-dev.vercel.app`, now `renewl-live.vercel.app`) green for the full MVP. Two fixes during the test: (a) post-magic-link landing was at `/` not `/dashboard` — added a `redirectTo=/dashboard` hidden input to the sign-in form; (b) renewal-alert dedup never matched because it compared `sentAt` against tomorrow IST midnight — added an optional `forDayMs` field on `alerts` and dedup on exact equality. Domain bought + verified in Resend; auth + alert email senders are now on the verified domain.
 - **2026-04-25** — Swapped parser provider from `@ai-sdk/anthropic` (Claude Haiku 4.5) to `@ai-sdk/openai` (gpt-4o-mini) to use existing OpenAI credits. Code change is one-line in `convex/parser.ts`; env var on Convex is now `OPENAI_API_KEY` instead of `ANTHROPIC_API_KEY`.
