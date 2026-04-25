@@ -1,11 +1,13 @@
 # Renewl — Scope Document
 
+
 > Single source of truth for what Renewl is, who it's for, and what we've decided.
 > Read top-to-bottom in ~10 minutes. Update any time a decision changes.
 
-**Last updated:** 2026-04-24
-**Status:** Pre-build (waitlist landing live, MVP build not yet started)
-**Live URL:** https://renewls.vercel.app
+**Last updated:** 2026-04-25
+**Status:** MVP integration-complete on `dev/mvp1` and smoke-tested end-to-end on `renewl-live.vercel.app` (waitlist intact, magic-link sign-in, manual entry, paste parse, upload parse with vision, edit, delete, replace flow at cap, renewal-alert cron with dedup, 24h file cleanup cron). On `dev/mvp1`, `/` now shows the MVP product landing (CTA → `/sign-in` or `/dashboard` if authed); the email-capture waitlist form has been removed in preparation for merge to `main`. Open: prod-promotion checklist below in §10 must complete before `dev/mvp1` is merged to `main`.
+**Live URL:** https://renewls.vercel.app (Vercel project: `renewl`, source: separate repo `sunilvijendra/renewl-waitlist`, Convex: `silent-albatross-349`)
+**Dev URL:** https://renewl-live.vercel.app (Vercel project: `renewl-live`, formerly `renewls-dev`; deploys from this repo's `dev/mvp1`, reads from Convex project `renewl-app` / deployment `kindly-quail-882`)
 
 ---
 
@@ -32,7 +34,7 @@ Indian consumers auto-pay dozens of small recurring amounts that individually fe
 - **Ingestion — two channels in dashboard:**
   - Upload PDF or image of a receipt
   - Paste receipt text into a box
-- **Parser — Claude Haiku via Vercel AI SDK** with structured output. AI SDK chosen specifically so we can swap the underlying model (OpenAI, Gemini, etc.) without rewriting the parser.
+- **Parser — OpenAI `gpt-4o-mini` via Vercel AI SDK** with structured output. AI SDK chosen specifically so we can swap the underlying model (Anthropic, Gemini, etc.) without rewriting the parser.
 - **Extraction schema:**
   ```ts
   {
@@ -89,7 +91,7 @@ Loose, ordered by likelihood / value:
 [Convex backend — project: renewl]
   ├─ Queries + mutations (typed, realtime-subscribed to UI)
   ├─ Actions (for external API calls)
-  │     └─ Vercel AI SDK → @ai-sdk/anthropic → Claude Haiku 4.5
+  │     └─ Vercel AI SDK → @ai-sdk/openai → gpt-4o-mini
   ├─ File storage (uploaded receipts, 24h TTL via scheduled cleanup)
   ├─ Scheduled functions (daily 08:00 IST renewal alert cron)
   └─ Convex Auth (magic-link email)
@@ -107,15 +109,21 @@ Current (as of 2026-04-24, waitlist landing only):
 |---|---|---|
 | `waitlist` | `email`, `createdAt`, `source` | Index: `by_email`. Populated by the live landing page. |
 
-Planned (MVP):
+Planned (MVP) — written to `convex/schema.ts` on 2026-04-25:
 
 | Table | Fields | Notes |
 |---|---|---|
-| `users` | managed by Convex Auth | `email`, `createdAt` |
-| `subscriptions` | `userId`, `name`, `category`, `amountInr`, `cycle`, `nextRenewal`, `createdAt`, `updatedAt` | Index: `by_user`, `by_user_and_nextRenewal`. Max 10 per user (enforced in mutation). |
-| `pendingParses` | `userId`, `extracted` (the JSON), `fileId` (optional), `status` ("awaiting_review" \| "replaced" \| "discarded"), `createdAt` | Triggered when user is at 10-item cap and parses a new receipt. |
-| `parseJobs` | `userId`, `fileId` (optional), `pastedText` (optional), `status`, `attempts`, `lastError`, `createdAt` | Short-lived; cleaned up after parse completes. |
-| `alerts` | `userId`, `subscriptionId`, `type` ("day_before"), `sentAt` | For dedup + audit. |
+| `users` | `email` | **Placeholder** until Convex Auth is installed; will be replaced by `authTables.users`. Index: `by_email`. |
+| `subscriptions` | `userId`, `vendor`, `category` (slug enum), `amountInr` (paise), `cycle` (enum), `nextRenewal` (ms, start-of-day IST), `confidence?`, `fileId?`, `updatedAt` | Index: `by_user`, `by_user_and_nextRenewal`. Cap 10 per user (enforced in mutation). `fileId` powers "view receipt" within the 24h retention window; goes dangling after cleanup. `_creationTime` covers `createdAt`. |
+| `parseJobs` | `userId`, `fileId?`, `pastedText?`, `extracted?` (parser output, awaiting confirm), `status` ("queued" \| "running" \| "succeeded" \| "failed"), `attempts`, `lastError?` | Short-lived; deleted on user confirm or discard. Index: `by_user_and_status`. |
+| `pendingParses` | `userId`, `extracted` (subscription-shaped), `fileId?`, `status` ("awaiting_review" \| "replaced" \| "discarded") | Triggered when user is at 10-item cap. `extracted` mirrors subscription field shape so a confirmed replace is a straight copy. Index: `by_user_and_status`. |
+| `alerts` | `userId`, `subscriptionId`, `type` ("day_before"), `sentAt` | Dedup + audit. Index: `by_subscription_and_type`. |
+
+**Storage units & encodings**
+- `amountInr` is **paise as integer** (`64900` for ₹649) — avoids float drift on totals; UI converts at the edge.
+- `nextRenewal` and `sentAt` are **ms timestamps**, with `nextRenewal` snapped to start-of-day in `Asia/Kolkata`. No per-user timezone is stored — all users are urban Indians per §2; cron and date math hard-code IST.
+- `category` slugs: `streaming`, `ai_productivity`, `commerce_membership`, `music_audio`, `cloud_storage`, `news_reading`, `fitness_wellness`, `insurance`, `emis_loans`, `utilities_telecom`, `other`. UI maps slug → display label (see §9).
+- `cycle` literals: `monthly`, `quarterly`, `yearly`, `one_time`.
 
 ## 9. Reference — fixed lists and constants
 
@@ -146,15 +154,40 @@ Planned (MVP):
 ## 10. Open questions
 
 - **Optional "essential" flag on each item?** — would let the discovery UX highlight non-essentials the user might forget. Parked for MVP unless the "find the ones you forgot" story feels weak without it.
-- **Domain.** Currently on `renewls.vercel.app` (with an `s`) because `renewl.vercel.app` was taken. Decision on whether to buy `renewl.in` / `getrenewl.com` before public launch.
-- **Prod vs dev Convex deployment.** Production is currently reading from the dev deployment (`silent-albatross-349`). Needs promotion to prod before any real user traffic.
+- **Domain.** A real domain was bought + verified in Resend on 2026-04-25 (used as the magic-link + alert sender on `renewl-live`). Open: whether to also point the public `renewls.vercel.app` waitlist at a custom domain before opening the MVP.
+- **Prod vs dev Convex deployment.** Two Convex deployments are live: `silent-albatross-349` (powers the waitlist landing on `renewls.vercel.app` via Vercel project `renewl` ← repo `renewl-waitlist`) and `kindly-quail-882` (powers the MVP on `renewl-live.vercel.app` via Vercel project `renewl-live` ← this repo's `dev/mvp1`). Both are dev-class. Plan: promote `renewl-app` to a Convex prod deployment, switch `renewl-live` to read from it, migrate the `silent-albatross-349` waitlist subscribers (one-shot invite blast), then retire the `renewl` Vercel project + the `renewl-waitlist` repo + the `silent-albatross-349` Convex deployment together. **Detailed step-by-step in `GO-LIVE-PREP.md` at the repo root.**
 - **Post-launch analytics.** None wired yet. Week-one question: do we install Plausible / PostHog / Vercel Analytics?
 - **Delete-receipt UX.** 24h auto-delete is decided; do we also give users a "delete now" button? Probably yes, cheap to add.
+- **Parse accuracy eval.** §11 revisit threshold is <90% on a 100-receipt eval. No eval set built yet. Open: whether to run one before public open or wait for real user reports.
 
 ## 11. Decision log
 
 Append-only. Most recent first. Every material decision gets an entry. Format:
 **Decision · Why · Alternatives considered · Revisit when**
+
+### 2026-04-25 — Schema details locked (enums, units, references)
+- **Decision:**
+  - `vendor` (not `name`) for the merchant string.
+  - `nextRenewal` stored as `v.number()` (ms timestamp, snapped to start-of-day IST), not ISO string.
+  - `category` and `cycle` encoded as Convex `v.union(v.literal(...))`. Categories use slugs; UI maps slug → display label.
+  - `amountInr` stored as **paise (integer)** to avoid float drift.
+  - `confidence` carried onto `subscriptions` so dashboard can dim or flag low-confidence rows.
+  - `fileId` stored directly on `subscriptions` (not via `parseJobs`, which is short-lived). After 24h cleanup the field goes dangling — UI hides "view receipt" when storage object is gone.
+  - `parseJobs.extracted` (optional) holds parser output between parse and user confirm; deleted with the parseJob on confirm/discard.
+  - `pendingParses.extracted` mirrors the subscription field shape so confirming a replacement is a straight copy.
+  - `users` table is a placeholder pending Convex Auth installation; will be replaced by `authTables.users` then.
+  - Drop explicit `createdAt` from new tables — rely on Convex `_creationTime`. (Existing `waitlist` keeps its `createdAt` field; not migrated.)
+  - `essential` flag: deferred (still open in §10).
+  - All users IST per §2 — no per-user TZ stored; cron and date math hard-code Asia/Kolkata.
+- **Why:** Database-class defaults (paise, integer timestamps, enum unions) over UI conveniences. Schema is strict where it can be cheap.
+- **Alternatives considered:** Display-string categories (uglier slug-key in UI), rupees as float (drift on totals), ISO date strings (heavier, less ergonomic for `by_user_and_nextRenewal` range queries), a third "draft" table for pre-confirm parses (`parseJobs.extracted` covers it).
+- **Revisit when:** A category slug needs renaming (one-shot data migration), we expose multi-currency, or `_creationTime` proves insufficient for any audit need.
+
+### 2026-04-25 — Dev environment isolation: separate Vercel project + separate Convex project
+- **Decision:** MVP build runs on a separate Vercel project (originally created as `renewls-dev`, renamed to `renewl-live` on 2026-04-25; prod branch `dev/mvp1`) reading from a separate Convex project (`renewl-app`, dev deployment `kindly-quail-882`). Live waitlist (Vercel project `renewl` at `renewls.vercel.app` + `silent-albatross-349` Convex) stays untouched.
+- **Why:** Lets us iterate on schema, mutations, and actions without risking the live waitlist mid-build.
+- **Alternatives considered:** Vercel preview deploys on the existing `renewl` project (no domain stability, shares Convex), or sharing `silent-albatross-349` Convex (live waitlist breaks if a schema iteration is bad).
+- **Revisit when:** MVP is ready to merge to `main`; at that point we promote `renewl-app` to a Convex prod deployment, repoint the `renewl` Vercel project to it, and retire `renewl-live`.
 
 ### 2026-04-24 — Auth: magic-link email via Convex Auth
 - **Decision:** Email magic-link sign-in. No password, no OAuth.
@@ -174,7 +207,13 @@ Append-only. Most recent first. Every material decision gets an entry. Format:
 - **Alternatives:** Hard block with "delete one first" error (worse UX), auto-upgrade to paid tier (no MVP tier exists).
 - **Revisit when:** We remove the 10-item cap in v1.3.
 
-### 2026-04-24 — Parser: Claude Haiku via Vercel AI SDK
+### 2026-04-25 — Parser switched to OpenAI `gpt-4o-mini`
+- **Decision:** Use OpenAI `gpt-4o-mini` via `@ai-sdk/openai` (provider-direct, not via AI Gateway). Supersedes the 2026-04-24 Claude Haiku 4.5 decision below.
+- **Why:** User has existing OpenAI credits to apply against the parse cost. `gpt-4o-mini` matches what we need (vision for PDFs + images, structured output via Zod, ~1s latency, ~$0.15/1M input tokens), and the AI SDK abstracts the provider so the swap was a single import + model-string change in `convex/parser.ts`.
+- **Alternatives considered:** `gpt-4o` (≈3× cost, marginal gain on receipts), o-series reasoning models (overkill, slow + expensive), keeping Claude Haiku 4.5 (no credits to apply).
+- **Revisit when:** Indian-vendor parse accuracy drops below ~90% on a 100-receipt eval (consider `gpt-4o`), or OpenAI credits run out.
+
+### 2026-04-24 — Parser: Claude Haiku via Vercel AI SDK *(superseded 2026-04-25)*
 - **Decision:** Anthropic Claude Haiku 4.5 as the parser; called through Vercel AI SDK with a structured-output schema.
 - **Why:** Cheap (~₹0.05/receipt), fast, strong structured-output. AI SDK's provider abstraction means we can swap to OpenAI / Gemini / Claude Sonnet with a one-line change.
 - **Alternatives:** Rule-based parser (brittle for Indian vendors), OpenAI GPT-4o-mini (fine, but SDK abstracts this anyway), Vercel AI Gateway (viable for later; unnecessary layer for MVP).
@@ -204,12 +243,26 @@ Append-only. Most recent first. Every material decision gets an entry. Format:
 - **Alternatives:** Free-text tags (messy, hard to query), larger list (fatigue).
 - **Revisit when:** A category is used by <2% of users for >60 days (consolidate), or a missing category is requested repeatedly (add).
 
+### 2026-04-25 — Waitlist code split into a separate repo
+- **Decision:** The waitlist landing's source moved from this repo's `main` branch to a new private repo, `sunilvijendra/renewl-waitlist`. The Vercel project `renewl` (URL `renewls.vercel.app`) is now connected to that repo; this repo only powers `renewl-live` (the MVP).
+- **Why:** Keeps the two surfaces — waitlist and MVP — independently deployable. After the split, this repo's `main` can be replaced by the MVP code (via the eventual `dev/mvp1` → `main` merge) without disturbing the live waitlist. The waitlist repo can also be edited directly (e.g. a "launching soon" banner) without coupling to MVP work.
+- **Alternatives:** Keep both surfaces in one repo with branch-driven routing (gross, risk of accidental cross-merge), or do a git-history rewrite on this repo's `main` (avoidable destructive op).
+- **How verified:** New repo created, single commit pushed, Vercel `renewl` project disconnected from this repo and reconnected to `renewl-waitlist`, fresh email submitted at `renewls.vercel.app` and confirmed landing in the `silent-albatross-349` `waitlist` table.
+- **Revisit when:** Cutover begins (Phase 4 of `GO-LIVE-PREP.md` retires `renewl-waitlist` alongside the `renewl` Vercel project).
+
 ### 2026-04-24 — Waitlist landing live
-- **Decision:** Shipped the waitlist landing at `renewls.vercel.app` on 2026-04-24. Email capture → Convex `waitlist` table.
+- **Decision:** Shipped the waitlist landing at `renewls.vercel.app` (Vercel project `renewl`) on 2026-04-24. Email capture → Convex `waitlist` table.
 - **Why:** Gate sign-ups while we build; validate the copy + positioning; buy ourselves a week to build without pressure.
 - **Alternatives:** Ship the app directly (higher risk, no user buffer).
 - **Revisit when:** MVP is ready to open to waitlist users.
 
 ## 12. Changelog
 
+- **2026-04-25** — Split the live waitlist into its own repo `sunilvijendra/renewl-waitlist` (private, single commit). Vercel project `renewl` (URL `renewls.vercel.app`) reconnected to that repo; Convex deployment `silent-albatross-349` and existing waitlist data are unchanged. Validated end-to-end with a fresh email submission. This repo's `main` branch is now stale waitlist code that will be replaced by the MVP via the eventual `dev/mvp1` → `main` merge.
+- **2026-04-25** — Replaced the waitlist landing on `dev/mvp1` (`/` route) with the MVP product landing: same headline/bullets/trust line, but the email-capture form is now a "Sign in" CTA → `/sign-in` (server-aware: shows "Open dashboard" → `/dashboard` if already authed). `app/waitlist-form.tsx` deleted. `convex/waitlist.ts` and the `waitlist` table kept (preserves data on `silent-albatross-349` until a migration plan lands; harmless on `kindly-quail-882`). Added the prod-promotion pre-merge checklist to §10.
+- **2026-04-25** — Renamed the **dev** Vercel project (formerly `renewls-dev`) to `renewl-live`; URL is now `https://renewl-live.vercel.app`. The live waitlist project (`renewl` on Vercel, URL `renewls.vercel.app`) is unchanged. Updated scope-doc references throughout.
+- **2026-04-25** — End-to-end smoke test on the dev URL (then `renewls-dev.vercel.app`, now `renewl-live.vercel.app`) green for the full MVP. Two fixes during the test: (a) post-magic-link landing was at `/` not `/dashboard` — added a `redirectTo=/dashboard` hidden input to the sign-in form; (b) renewal-alert dedup never matched because it compared `sentAt` against tomorrow IST midnight — added an optional `forDayMs` field on `alerts` and dedup on exact equality. Domain bought + verified in Resend; auth + alert email senders are now on the verified domain.
+- **2026-04-25** — Swapped parser provider from `@ai-sdk/anthropic` (Claude Haiku 4.5) to `@ai-sdk/openai` (gpt-4o-mini) to use existing OpenAI credits. Code change is one-line in `convex/parser.ts`; env var on Convex is now `OPENAI_API_KEY` instead of `ANTHROPIC_API_KEY`.
+- **2026-04-25** — Built the MVP end-to-end on `dev/mvp1`: Convex Auth magic-link sign-in via Resend, file upload + paste ingestion, Claude Haiku 4.5 parser (Vercel AI SDK v6, `@ai-sdk/anthropic`), parse-review card with cap-aware confirm/replace/discard, dashboard list with edit-in-place + delete + view-receipt, manual entry, daily 08:00 IST renewal-alert cron via `@convex-dev/resend` component, hourly 24h file cleanup cron. Schema swap: spread `authTables` (replacing the placeholder `users`), added `fileExpiresAt` + `by_fileExpiresAt` indexes on subscriptions/parseJobs/pendingParses. Build green; awaiting domain verification + Convex env vars (ANTHROPIC_API_KEY, AUTH_RESEND_KEY, RESEND_API_KEY, AUTH_EMAIL_FROM, ALERTS_EMAIL_FROM) before end-to-end smoke test.
+- **2026-04-25** — Locked MVP schema and wrote `convex/schema.ts`. Set up the dev Vercel project (then `renewls-dev`, later renamed `renewl-live`) on `dev/mvp1` reading from new `renewl-app` Convex deployment so the live waitlist stays untouched during the build.
 - **2026-04-24** — Initial scope doc created. Captures all decisions taken during the pre-build scoping session: MVP shape, parser + ingestion, auth, retention, item cap, category list. Waitlist landing is live; MVP build begins next.

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Instrument_Serif } from "next/font/google";
 import { GeistSans } from "geist/font/sans";
+import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
   title: "Renewl — Every recurring charge. One dashboard.",
   description:
     "Forward or upload your receipts. Renewl tells you what's auto-renewing, when, and for how much — before it hits your account.",
-  metadataBase: new URL("https://renewl.vercel.app"),
+  metadataBase: new URL("https://renewls.vercel.app"),
   openGraph: {
     title: "Renewl — Every recurring charge. One dashboard.",
     description:
@@ -28,13 +29,15 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="en"
-      className={`${GeistSans.variable} ${instrumentSerif.variable} antialiased`}
-    >
-      <body className="min-h-dvh bg-paper text-ink font-sans">
-        <Providers>{children}</Providers>
-      </body>
-    </html>
+    <ConvexAuthNextjsServerProvider>
+      <html
+        lang="en"
+        className={`${GeistSans.variable} ${instrumentSerif.variable} antialiased`}
+      >
+        <body className="min-h-dvh bg-paper text-ink font-sans">
+          <Providers>{children}</Providers>
+        </body>
+      </html>
+    </ConvexAuthNextjsServerProvider>
   );
 }
