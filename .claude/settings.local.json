@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx *)",
+      "Bash(pkill -f \"skills add\")",
+      "Bash(pnpm dlx *)",
+      "Bash(command -v nvm)",
+      "Read(//Users/sunilvijendra/.nvm/versions/node/**)",
+      "Bash(command -v fnm)",
+      "Read(//opt/homebrew/opt/**)",
+      "Read(//usr/local/**)",
+      "Bash(export PATH=\"/Users/sunilvijendra/.nvm/versions/node/v22.22.0/bin:$PATH\")",
+      "Bash(npm -v)",
+      "Bash(command -v pnpm)",
+      "Bash(pnpm -v)",
+      "Bash(mv /tmp/skills-lock.json.bak /Users/sunilvijendra/Tech/GrowthX/AIWeekender/renwl/skills-lock.json)",
+      "Bash(pnpm add *)",
+      "Bash(curl -sS -o /tmp/renewl-home.html -w \"STATUS=%{http_code}\\\\nBYTES=%{size_download}\\\\n\" http://localhost:3000/)",
+      "Read(//tmp/**)",
+      "Bash(vercel --version)",
+      "Bash(vercel whoami *)",
+      "Bash(vercel link *)",
+      "Bash(vercel env *)",
+      "Bash(vercel --prod --yes)",
+      "Bash(curl -sS -o /dev/null -w \"aliased=%{http_code}\\\\n\" https://renewl-khaki.vercel.app)",
+      "Bash(curl -sS -o /dev/null -w \"status=%{http_code}\\\\n\" https://renewl-khaki.vercel.app)",
+      "Bash(curl -sS https://renewl-khaki.vercel.app/)",
+      "Bash(curl -sS -o /tmp/renewls-check.html -w \"status=%{http_code}\\\\nfinal_url=%{url_effective}\\\\n\" -L https://renewls.vercel.app)",
+      "Bash(curl *)",
+      "Bash(grep -oE \"signing up for[^\\\\\"]{0,10}\")"
+    ]
+  }
+}
