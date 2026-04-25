@@ -40,3 +40,19 @@ body {
   outline-offset: 2px;
   border-radius: 2px;
 }
+
+/* Tailwind v4 dropped the v3 Preflight rule that gave buttons a pointer
+   cursor. Restore it for buttons and role=button elements. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  summary:not(:disabled),
+  label[for]:not(:has(input:disabled)) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role="button"][aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
