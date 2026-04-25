@@ -3,7 +3,7 @@
 import { v } from "convex/values";
 import { z } from "zod";
 import { generateObject, NoObjectGeneratedError } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from "@ai-sdk/openai";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { toStartOfDayIstMs, todayIsoIst } from "./lib/dates";
@@ -154,7 +154,7 @@ export const run = internalAction({
 
     try {
       const { object } = await generateObject({
-        model: anthropic("claude-haiku-4-5"),
+        model: openai("gpt-4o-mini"),
         schema: parseSchema,
         system: buildSystemPrompt(),
         messages: [{ role: "user", content: parts }],

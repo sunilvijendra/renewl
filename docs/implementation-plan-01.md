@@ -6,7 +6,7 @@ Renewl ships its first usable version on `dev/mvp1` → Vercel project `renewls-
 
 **What we're delivering** (per `docs/scope.md`):
 - magic-link sign-in via Convex Auth + Resend
-- two ingestion paths (PDF/image upload + paste-text), parsed by Claude Haiku 4.5 via Vercel AI SDK in a Convex Node action
+- two ingestion paths (PDF/image upload + paste-text), parsed by OpenAI `gpt-4o-mini` via Vercel AI SDK in a Convex Node action
 - editable parse-review card → confirms into a 10-item subscriptions tracker
 - 10-cap replacement flow via `pendingParses`
 - manual entry path (cap-aware hard-block)
@@ -15,7 +15,7 @@ Renewl ships its first usable version on `dev/mvp1` → Vercel project `renewls-
 - existing waitlist landing remains at `/`, untouched
 
 **Locked decisions (this session):**
-- AI provider: direct via `@ai-sdk/anthropic` (model `claude-haiku-4-5`)
+- AI provider: direct via `@ai-sdk/openai` (model `gpt-4o-mini`) — switched from `@ai-sdk/anthropic` on 2026-04-25 to use existing OpenAI credits
 - Email sender: real verified domain (e.g. `renewl.in`/`getrenewl.com`) — user buys + verifies before push; sandbox `onboarding@resend.dev` only as interim
 - Cadence: all slices in one push to `dev/mvp1`
 
@@ -83,7 +83,7 @@ Action: from Convex dashboard, delete all rows in `users`, `subscriptions`, `par
 |---|---|---|---|
 | `NEXT_PUBLIC_CONVEX_URL` | Vercel | client → Convex | already set |
 | `NEXT_PUBLIC_CONVEX_SITE_URL` | Vercel | already set | already set |
-| `ANTHROPIC_API_KEY` | Convex | parser action | `npx convex env set` |
+| `OPENAI_API_KEY` | Convex | parser action | `npx convex env set` |
 | `AUTH_RESEND_KEY` | Convex | magic-link sender | `npx convex env set` |
 | `RESEND_API_KEY` | Convex | alert sender | `npx convex env set` |
 | `AUTH_EMAIL_FROM` | Convex | magic-link `from` | `Renewl <auth@<domain>>` |
@@ -160,15 +160,15 @@ Action: from Convex dashboard, delete all rows in `users`, `subscriptions`, `par
 
 ## Slice C — Parser action (parallel)
 
-**Packages:** `ai`, `@ai-sdk/anthropic`, `zod`.
+**Packages:** `ai`, `@ai-sdk/openai`, `zod`.
 
 **File to create:** `convex/parser.ts` — top of file: `"use node";`
 - `internalAction run({ jobId })`:
   1. `markRunning` → flips status, ++attempts.
   2. `loadJob` → returns row.
-  3. If `fileId`: `ctx.storage.get(fileId)` + read mime via `ctx.db.system.get("_storage", fileId)`. Image MIME → `type: "image"` block. PDF → `type: "file"` block with `mediaType: "application/pdf"`. Anthropic native PDF, no OCR.
+  3. If `fileId`: `ctx.storage.get(fileId)` + read mime via `ctx.db.system.get("_storage", fileId)`. Image MIME → `type: "image"` block. PDF → `type: "file"` block with `mediaType: "application/pdf"`. OpenAI's chat-completions API has native PDF + image input via the AI SDK's file/image blocks; no OCR needed.
   4. If `pastedText`: `type: "text"` block.
-  5. Call AI SDK structured-output (the v6 API; verify against current `node_modules/ai/dist/index.d.ts` before writing — `generateObject` is deprecated in v6, the replacement lives on `generateText`). Model: `anthropic("claude-haiku-4-5")` from `@ai-sdk/anthropic`.
+  5. Call AI SDK `generateObject` (verified present in v6 from `node_modules/ai/dist/index.d.ts`; lints that flag it as removed are stale). Model: `openai("gpt-4o-mini")` from `@ai-sdk/openai`.
   6. Validate via Zod schema mirroring `extractedValidator`.
   7. Coerce: ISO date → `toStartOfDayIstMs(iso)`; rupees float → `Math.round(rupees * 100)` paise.
   8. `markSucceeded` patches `extracted` + status.
@@ -193,8 +193,8 @@ Action: from Convex dashboard, delete all rows in `users`, `subscriptions`, `par
 
 **Risks:**
 - `"use node";` in `parser.ts` only. `parseJobs.ts` (mutations) must stay in default runtime.
-- 10MB upload cap keeps us under Anthropic's PDF size limit.
-- Cost ~₹0.10–0.30/receipt — under scope §11 ₹0.20 alarm threshold.
+- 10MB upload cap keeps us under OpenAI's chat-completions file size limit.
+- Cost on `gpt-4o-mini`: ~$0.15/1M input + $0.60/1M output → roughly ₹0.05–0.15 per receipt parse including image tokens.
 
 **Verification:** Real Netflix India PDF → succeeded in <5s with vendor "Netflix", amountInr ~64900, cycle monthly, category streaming, confidence ≥0.85. Garbage text → failed with populated lastError.
 
@@ -397,7 +397,7 @@ Twelve green = MVP integration-complete.
 
 ## Risks worth watching during build
 
-- **AI SDK v6 structured-output API.** `generateObject` is deprecated in v6; verify the current shape against `node_modules/ai/dist/index.d.ts` before slice C lands. Wrong helper silently returns free-form text.
+- **AI SDK v6 structured-output API.** `generateObject` is exported in v6 (verified in `node_modules/ai/dist/index.d.ts`). Some validator hooks may incorrectly flag it as removed — that's stale guidance.
 - **Convex Auth Resend env var name.** Provider reads `AUTH_RESEND_KEY`. Typo → silent failure; no client-side error.
 - **Next 16 middleware Proxy default.** Confirm Convex Auth's middleware helper is compatible; if not, opt back to Edge with `runtime = "edge"` in `middleware.ts`.
 - **First push timing for Resend domain.** If verified domain isn't ready when A lands, set `AUTH_EMAIL_FROM` and `ALERTS_EMAIL_FROM` to `Renewl <onboarding@resend.dev>` for the first build, swap once verified.

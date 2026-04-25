@@ -34,7 +34,7 @@ Indian consumers auto-pay dozens of small recurring amounts that individually fe
 - **Ingestion — two channels in dashboard:**
   - Upload PDF or image of a receipt
   - Paste receipt text into a box
-- **Parser — Claude Haiku via Vercel AI SDK** with structured output. AI SDK chosen specifically so we can swap the underlying model (OpenAI, Gemini, etc.) without rewriting the parser.
+- **Parser — OpenAI `gpt-4o-mini` via Vercel AI SDK** with structured output. AI SDK chosen specifically so we can swap the underlying model (Anthropic, Gemini, etc.) without rewriting the parser.
 - **Extraction schema:**
   ```ts
   {
@@ -91,7 +91,7 @@ Loose, ordered by likelihood / value:
 [Convex backend — project: renewl]
   ├─ Queries + mutations (typed, realtime-subscribed to UI)
   ├─ Actions (for external API calls)
-  │     └─ Vercel AI SDK → @ai-sdk/anthropic → Claude Haiku 4.5
+  │     └─ Vercel AI SDK → @ai-sdk/openai → gpt-4o-mini
   ├─ File storage (uploaded receipts, 24h TTL via scheduled cleanup)
   ├─ Scheduled functions (daily 08:00 IST renewal alert cron)
   └─ Convex Auth (magic-link email)
@@ -206,7 +206,13 @@ Append-only. Most recent first. Every material decision gets an entry. Format:
 - **Alternatives:** Hard block with "delete one first" error (worse UX), auto-upgrade to paid tier (no MVP tier exists).
 - **Revisit when:** We remove the 10-item cap in v1.3.
 
-### 2026-04-24 — Parser: Claude Haiku via Vercel AI SDK
+### 2026-04-25 — Parser switched to OpenAI `gpt-4o-mini`
+- **Decision:** Use OpenAI `gpt-4o-mini` via `@ai-sdk/openai` (provider-direct, not via AI Gateway). Supersedes the 2026-04-24 Claude Haiku 4.5 decision below.
+- **Why:** User has existing OpenAI credits to apply against the parse cost. `gpt-4o-mini` matches what we need (vision for PDFs + images, structured output via Zod, ~1s latency, ~$0.15/1M input tokens), and the AI SDK abstracts the provider so the swap was a single import + model-string change in `convex/parser.ts`.
+- **Alternatives considered:** `gpt-4o` (≈3× cost, marginal gain on receipts), o-series reasoning models (overkill, slow + expensive), keeping Claude Haiku 4.5 (no credits to apply).
+- **Revisit when:** Indian-vendor parse accuracy drops below ~90% on a 100-receipt eval (consider `gpt-4o`), or OpenAI credits run out.
+
+### 2026-04-24 — Parser: Claude Haiku via Vercel AI SDK *(superseded 2026-04-25)*
 - **Decision:** Anthropic Claude Haiku 4.5 as the parser; called through Vercel AI SDK with a structured-output schema.
 - **Why:** Cheap (~₹0.05/receipt), fast, strong structured-output. AI SDK's provider abstraction means we can swap to OpenAI / Gemini / Claude Sonnet with a one-line change.
 - **Alternatives:** Rule-based parser (brittle for Indian vendors), OpenAI GPT-4o-mini (fine, but SDK abstracts this anyway), Vercel AI Gateway (viable for later; unnecessary layer for MVP).
@@ -244,6 +250,7 @@ Append-only. Most recent first. Every material decision gets an entry. Format:
 
 ## 12. Changelog
 
+- **2026-04-25** — Swapped parser provider from `@ai-sdk/anthropic` (Claude Haiku 4.5) to `@ai-sdk/openai` (gpt-4o-mini) to use existing OpenAI credits. Code change is one-line in `convex/parser.ts`; env var on Convex is now `OPENAI_API_KEY` instead of `ANTHROPIC_API_KEY`.
 - **2026-04-25** — Built the MVP end-to-end on `dev/mvp1`: Convex Auth magic-link sign-in via Resend, file upload + paste ingestion, Claude Haiku 4.5 parser (Vercel AI SDK v6, `@ai-sdk/anthropic`), parse-review card with cap-aware confirm/replace/discard, dashboard list with edit-in-place + delete + view-receipt, manual entry, daily 08:00 IST renewal-alert cron via `@convex-dev/resend` component, hourly 24h file cleanup cron. Schema swap: spread `authTables` (replacing the placeholder `users`), added `fileExpiresAt` + `by_fileExpiresAt` indexes on subscriptions/parseJobs/pendingParses. Build green; awaiting domain verification + Convex env vars (ANTHROPIC_API_KEY, AUTH_RESEND_KEY, RESEND_API_KEY, AUTH_EMAIL_FROM, ALERTS_EMAIL_FROM) before end-to-end smoke test.
 - **2026-04-25** — Locked MVP schema and wrote `convex/schema.ts`. Set up `renewls-dev` Vercel project on `dev/mvp1` reading from new `renewl-app` Convex deployment so the live waitlist stays untouched during the build.
 - **2026-04-24** — Initial scope doc created. Captures all decisions taken during the pre-build scoping session: MVP shape, parser + ingestion, auth, retention, item cap, category list. Waitlist landing is live; MVP build begins next.
