@@ -4,9 +4,10 @@
 > Single source of truth for what Renewl is, who it's for, and what we've decided.
 > Read top-to-bottom in ~10 minutes. Update any time a decision changes.
 
-**Last updated:** 2026-04-24
-**Status:** Pre-build (waitlist landing live, MVP build not yet started)
+**Last updated:** 2026-04-25
+**Status:** Pre-build (waitlist landing live; MVP schema written, build not yet started)
 **Live URL:** https://renewls.vercel.app
+**Dev URL:** https://renewls-dev.vercel.app (deploys from `dev/mvp1`, reads from Convex project `renewl-app` / deployment `kindly-quail-882`)
 
 ---
 
@@ -108,15 +109,21 @@ Current (as of 2026-04-24, waitlist landing only):
 |---|---|---|
 | `waitlist` | `email`, `createdAt`, `source` | Index: `by_email`. Populated by the live landing page. |
 
-Planned (MVP):
+Planned (MVP) — written to `convex/schema.ts` on 2026-04-25:
 
 | Table | Fields | Notes |
 |---|---|---|
-| `users` | managed by Convex Auth | `email`, `createdAt` |
-| `subscriptions` | `userId`, `name`, `category`, `amountInr`, `cycle`, `nextRenewal`, `createdAt`, `updatedAt` | Index: `by_user`, `by_user_and_nextRenewal`. Max 10 per user (enforced in mutation). |
-| `pendingParses` | `userId`, `extracted` (the JSON), `fileId` (optional), `status` ("awaiting_review" \| "replaced" \| "discarded"), `createdAt` | Triggered when user is at 10-item cap and parses a new receipt. |
-| `parseJobs` | `userId`, `fileId` (optional), `pastedText` (optional), `status`, `attempts`, `lastError`, `createdAt` | Short-lived; cleaned up after parse completes. |
-| `alerts` | `userId`, `subscriptionId`, `type` ("day_before"), `sentAt` | For dedup + audit. |
+| `users` | `email` | **Placeholder** until Convex Auth is installed; will be replaced by `authTables.users`. Index: `by_email`. |
+| `subscriptions` | `userId`, `vendor`, `category` (slug enum), `amountInr` (paise), `cycle` (enum), `nextRenewal` (ms, start-of-day IST), `confidence?`, `fileId?`, `updatedAt` | Index: `by_user`, `by_user_and_nextRenewal`. Cap 10 per user (enforced in mutation). `fileId` powers "view receipt" within the 24h retention window; goes dangling after cleanup. `_creationTime` covers `createdAt`. |
+| `parseJobs` | `userId`, `fileId?`, `pastedText?`, `extracted?` (parser output, awaiting confirm), `status` ("queued" \| "running" \| "succeeded" \| "failed"), `attempts`, `lastError?` | Short-lived; deleted on user confirm or discard. Index: `by_user_and_status`. |
+| `pendingParses` | `userId`, `extracted` (subscription-shaped), `fileId?`, `status` ("awaiting_review" \| "replaced" \| "discarded") | Triggered when user is at 10-item cap. `extracted` mirrors subscription field shape so a confirmed replace is a straight copy. Index: `by_user_and_status`. |
+| `alerts` | `userId`, `subscriptionId`, `type` ("day_before"), `sentAt` | Dedup + audit. Index: `by_subscription_and_type`. |
+
+**Storage units & encodings**
+- `amountInr` is **paise as integer** (`64900` for ₹649) — avoids float drift on totals; UI converts at the edge.
+- `nextRenewal` and `sentAt` are **ms timestamps**, with `nextRenewal` snapped to start-of-day in `Asia/Kolkata`. No per-user timezone is stored — all users are urban Indians per §2; cron and date math hard-code IST.
+- `category` slugs: `streaming`, `ai_productivity`, `commerce_membership`, `music_audio`, `cloud_storage`, `news_reading`, `fitness_wellness`, `insurance`, `emis_loans`, `utilities_telecom`, `other`. UI maps slug → display label (see §9).
+- `cycle` literals: `monthly`, `quarterly`, `yearly`, `one_time`.
 
 ## 9. Reference — fixed lists and constants
 
@@ -156,6 +163,30 @@ Planned (MVP):
 
 Append-only. Most recent first. Every material decision gets an entry. Format:
 **Decision · Why · Alternatives considered · Revisit when**
+
+### 2026-04-25 — Schema details locked (enums, units, references)
+- **Decision:**
+  - `vendor` (not `name`) for the merchant string.
+  - `nextRenewal` stored as `v.number()` (ms timestamp, snapped to start-of-day IST), not ISO string.
+  - `category` and `cycle` encoded as Convex `v.union(v.literal(...))`. Categories use slugs; UI maps slug → display label.
+  - `amountInr` stored as **paise (integer)** to avoid float drift.
+  - `confidence` carried onto `subscriptions` so dashboard can dim or flag low-confidence rows.
+  - `fileId` stored directly on `subscriptions` (not via `parseJobs`, which is short-lived). After 24h cleanup the field goes dangling — UI hides "view receipt" when storage object is gone.
+  - `parseJobs.extracted` (optional) holds parser output between parse and user confirm; deleted with the parseJob on confirm/discard.
+  - `pendingParses.extracted` mirrors the subscription field shape so confirming a replacement is a straight copy.
+  - `users` table is a placeholder pending Convex Auth installation; will be replaced by `authTables.users` then.
+  - Drop explicit `createdAt` from new tables — rely on Convex `_creationTime`. (Existing `waitlist` keeps its `createdAt` field; not migrated.)
+  - `essential` flag: deferred (still open in §10).
+  - All users IST per §2 — no per-user TZ stored; cron and date math hard-code Asia/Kolkata.
+- **Why:** Database-class defaults (paise, integer timestamps, enum unions) over UI conveniences. Schema is strict where it can be cheap.
+- **Alternatives considered:** Display-string categories (uglier slug-key in UI), rupees as float (drift on totals), ISO date strings (heavier, less ergonomic for `by_user_and_nextRenewal` range queries), a third "draft" table for pre-confirm parses (`parseJobs.extracted` covers it).
+- **Revisit when:** A category slug needs renaming (one-shot data migration), we expose multi-currency, or `_creationTime` proves insufficient for any audit need.
+
+### 2026-04-25 — Dev environment isolation: `renewls-dev` Vercel + `renewl-app` Convex
+- **Decision:** MVP build runs on a separate Vercel project (`renewls-dev`, prod branch `dev/mvp1`) reading from a separate Convex project (`renewl-app`, dev deployment `kindly-quail-882`). Live waitlist (`renewls` Vercel + `silent-albatross-349` Convex) stays untouched.
+- **Why:** Lets us iterate on schema, mutations, and actions without risking the live waitlist mid-build.
+- **Alternatives considered:** Vercel preview deploys on the existing `renewls` project (no domain stability, shares Convex), or sharing `silent-albatross-349` Convex (live waitlist breaks if a schema iteration is bad).
+- **Revisit when:** MVP is ready to merge to `main`; at that point we promote `renewl-app` to a Convex prod deployment, repoint `renewls` Vercel to it, and retire `renewls-dev`.
 
 ### 2026-04-24 — Auth: magic-link email via Convex Auth
 - **Decision:** Email magic-link sign-in. No password, no OAuth.
@@ -213,4 +244,5 @@ Append-only. Most recent first. Every material decision gets an entry. Format:
 
 ## 12. Changelog
 
+- **2026-04-25** — Locked MVP schema and wrote `convex/schema.ts`. Set up `renewls-dev` Vercel project on `dev/mvp1` reading from new `renewl-app` Convex deployment so the live waitlist stays untouched during the build.
 - **2026-04-24** — Initial scope doc created. Captures all decisions taken during the pre-build scoping session: MVP shape, parser + ingestion, auth, retention, item cap, category list. Waitlist landing is live; MVP build begins next.
