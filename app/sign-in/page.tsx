@@ -70,6 +70,7 @@ export default function SignInPage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} noValidate className="w-full">
+              <input type="hidden" name="redirectTo" value="/dashboard" />
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:border sm:border-hairline-strong sm:rounded-sm sm:bg-paper-deep/40 sm:focus-within:border-accent sm:transition-colors">
                 <label className="sr-only" htmlFor="email">
                   Email address
