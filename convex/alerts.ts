@@ -82,7 +82,7 @@ export const _maybeSendOne = internalMutation({
       .withIndex("by_subscription_and_type", (q) =>
         q.eq("subscriptionId", subscriptionId).eq("type", "day_before"),
       )
-      .filter((q) => q.gte(q.field("sentAt"), dayMs))
+      .filter((q) => q.eq(q.field("forDayMs"), dayMs))
       .first();
     if (existing) return;
 
@@ -91,6 +91,7 @@ export const _maybeSendOne = internalMutation({
       subscriptionId,
       type: "day_before",
       sentAt: Date.now(),
+      forDayMs: dayMs,
     });
 
     await ctx.scheduler.runAfter(0, internal.alerts.sendEmail, { alertId });
