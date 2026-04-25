@@ -2,9 +2,13 @@
 
 Operational checklist for taking Renewl from "MVP smoke-tested on `renewl-live.vercel.app` against dev Convex" to "live, production-backed, legacy waitlist project retired".
 
-**Plan summary.** Keep the `renewl-live` Vercel project as the steady-state live deployment. Promote the `renewl-app` Convex project to a prod deployment and re-point `renewl-live` at it. Migrate the existing waitlist subscribers off `silent-albatross-349`, then pause the legacy `renewl` Vercel project + the legacy Convex deployment.
+**Plan summary.** Keep the `renewl-live` Vercel project as the steady-state live deployment. Promote the `renewl-app` Convex project to a prod deployment and re-point `renewl-live` at it. Migrate the existing waitlist subscribers off `silent-albatross-349`, then retire the trio that powers the current waitlist: the `renewl` Vercel project, the `sunilvijendra/renewl-waitlist` GitHub repo, and the `silent-albatross-349` Convex deployment.
 
 **Source of truth for what we're building:** `docs/scope.md`. This file is just the cutover plan.
+
+**Topology today (post-split):**
+- This repo (`sunilvijendra/renewl`) — `dev/mvp1` → Vercel `renewl-live` → Convex `kindly-quail-882` (MVP).
+- `sunilvijendra/renewl-waitlist` — `main` → Vercel `renewl` → Convex `silent-albatross-349` (legacy waitlist).
 
 ---
 
@@ -96,22 +100,24 @@ Operational checklist for taking Renewl from "MVP smoke-tested on `renewl-live.v
 
 16. **Optional but kind: 301 redirect `renewls.vercel.app` → `renewl-live.vercel.app`** so anyone with the old URL bookmarked lands on the new app. Add a `vercel.json` rewrite or a Routing Middleware on the paused project, then unpause briefly to apply.
 
-17. **Pause `silent-albatross-349` Convex deployment.** Convex dashboard → that deployment → Settings → Pause. Wait ~2 weeks in case anything's still pointed there, then it can be deleted.
+17. **Archive the `renewl-waitlist` GitHub repo.** GitHub → repo Settings → "Archive this repository". Once archived, no more pushes will accidentally trigger deploys on the paused Vercel project. Don't delete — preserves the audit trail for the waitlist landing's history.
+
+18. **Pause `silent-albatross-349` Convex deployment.** Convex dashboard → that deployment → Settings → Pause. Wait ~2 weeks in case anything's still pointed there, then it can be deleted.
 
 ---
 
 ## Phase 5 — (optional) custom domain
 
-18. **Decide on the live URL.** `renewl-live.vercel.app` is fine for soft-launch. For real growth, point a custom domain (you already verified one in Resend — could reuse the apex or use `app.<domain>`).
+19. **Decide on the live URL.** `renewl-live.vercel.app` is fine for soft-launch. For real growth, point a custom domain (you already verified one in Resend — could reuse the apex or use `app.<domain>`).
 
-19. **Add domain in Vercel.** Project `renewl-live` → Settings → Domains → Add. Vercel issues DNS records; add at registrar; wait for verification.
+20. **Add domain in Vercel.** Project `renewl-live` → Settings → Domains → Add. Vercel issues DNS records; add at registrar; wait for verification.
 
-20. **Update prod Convex `SITE_URL` to the custom domain** so magic-link emails match:
+21. **Update prod Convex `SITE_URL` to the custom domain** so magic-link emails match:
     ```
     npx convex env set --prod SITE_URL https://<your-custom-domain>
     ```
 
-21. **Update `app/layout.tsx` `metadataBase`** to the custom domain (so OG/social cards canonicalize there). Commit + push.
+22. **Update `app/layout.tsx` `metadataBase`** to the custom domain (so OG/social cards canonicalize there). Commit + push.
 
 ---
 
@@ -123,6 +129,6 @@ Cutover is done when:
 - [ ] Magic-link sign-in works end-to-end against prod
 - [ ] Daily renewal-alert cron has run successfully at least once on prod (or has been manually invoked)
 - [ ] 24h file cleanup cron has run on prod
-- [ ] `silent-albatross-349` Convex is paused; `renewl` Vercel is paused
+- [ ] `silent-albatross-349` Convex is paused; `renewl` Vercel is paused; `sunilvijendra/renewl-waitlist` GitHub repo is archived
 - [ ] Existing waitlist subscribers have been notified (per Q3)
 - [ ] `docs/scope.md` §status is updated to reflect "live"

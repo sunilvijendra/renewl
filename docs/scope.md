@@ -6,8 +6,8 @@
 
 **Last updated:** 2026-04-25
 **Status:** MVP integration-complete on `dev/mvp1` and smoke-tested end-to-end on `renewl-live.vercel.app` (waitlist intact, magic-link sign-in, manual entry, paste parse, upload parse with vision, edit, delete, replace flow at cap, renewal-alert cron with dedup, 24h file cleanup cron). On `dev/mvp1`, `/` now shows the MVP product landing (CTA → `/sign-in` or `/dashboard` if authed); the email-capture waitlist form has been removed in preparation for merge to `main`. Open: prod-promotion checklist below in §10 must complete before `dev/mvp1` is merged to `main`.
-**Live URL:** https://renewls.vercel.app (Vercel project: `renewl`)
-**Dev URL:** https://renewl-live.vercel.app (Vercel project: `renewl-live`, formerly `renewls-dev`; deploys from `dev/mvp1`, reads from Convex project `renewl-app` / deployment `kindly-quail-882`)
+**Live URL:** https://renewls.vercel.app (Vercel project: `renewl`, source: separate repo `sunilvijendra/renewl-waitlist`, Convex: `silent-albatross-349`)
+**Dev URL:** https://renewl-live.vercel.app (Vercel project: `renewl-live`, formerly `renewls-dev`; deploys from this repo's `dev/mvp1`, reads from Convex project `renewl-app` / deployment `kindly-quail-882`)
 
 ---
 
@@ -155,15 +155,7 @@ Planned (MVP) — written to `convex/schema.ts` on 2026-04-25:
 
 - **Optional "essential" flag on each item?** — would let the discovery UX highlight non-essentials the user might forget. Parked for MVP unless the "find the ones you forgot" story feels weak without it.
 - **Domain.** A real domain was bought + verified in Resend on 2026-04-25 (used as the magic-link + alert sender on `renewl-live`). Open: whether to also point the public `renewls.vercel.app` waitlist at a custom domain before opening the MVP.
-- **Prod vs dev Convex deployment.** The legacy waitlist `renewl` Vercel project still reads from `silent-albatross-349` (dev). The MVP build runs against a separate `renewl-app` project on `kindly-quail-882` (also dev), served by the `renewl-live` Vercel project. Needs a prod Convex deployment of `renewl-app`, with the `renewl` Vercel project re-pointed there before opening to waitlist users — at which point `renewl-live` is retired.
-
-  **Pre-merge checklist (must complete in this order before `dev/mvp1` → `main`):**
-  1. Promote `renewl-app` to a Convex prod deployment (`npx convex deploy --prod` or via dashboard); copy all env vars from `kindly-quail-882` to the new prod deployment (`OPENAI_API_KEY`, `AUTH_RESEND_KEY`, `RESEND_API_KEY`, `AUTH_EMAIL_FROM`, `ALERTS_EMAIL_FROM`, `SITE_URL=https://renewls.vercel.app`, `JWT_PRIVATE_KEY`, `JWKS`).
-  2. Push the schema and functions to that prod deployment (same `npx convex deploy --prod`).
-  3. Re-point the `renewl` Vercel project's env vars: `NEXT_PUBLIC_CONVEX_URL` and `NEXT_PUBLIC_CONVEX_SITE_URL` to the prod deployment URLs (not `silent-albatross-349`).
-  4. Decide on the existing `silent-albatross-349` waitlist data — either migrate emails to the new deployment's `waitlist` table (or send a one-shot invite blast) before turning that deployment off.
-  5. Merge `dev/mvp1` → `main`. Once Vercel auto-deploys, sanity-check `renewls.vercel.app` against the same smoke test.
-  6. Retire the `renewl-live` Vercel project.
+- **Prod vs dev Convex deployment.** Two Convex deployments are live: `silent-albatross-349` (powers the waitlist landing on `renewls.vercel.app` via Vercel project `renewl` ← repo `renewl-waitlist`) and `kindly-quail-882` (powers the MVP on `renewl-live.vercel.app` via Vercel project `renewl-live` ← this repo's `dev/mvp1`). Both are dev-class. Plan: promote `renewl-app` to a Convex prod deployment, switch `renewl-live` to read from it, migrate the `silent-albatross-349` waitlist subscribers (one-shot invite blast), then retire the `renewl` Vercel project + the `renewl-waitlist` repo + the `silent-albatross-349` Convex deployment together. **Detailed step-by-step in `GO-LIVE-PREP.md` at the repo root.**
 - **Post-launch analytics.** None wired yet. Week-one question: do we install Plausible / PostHog / Vercel Analytics?
 - **Delete-receipt UX.** 24h auto-delete is decided; do we also give users a "delete now" button? Probably yes, cheap to add.
 - **Parse accuracy eval.** §11 revisit threshold is <90% on a 100-receipt eval. No eval set built yet. Open: whether to run one before public open or wait for real user reports.
@@ -251,6 +243,13 @@ Append-only. Most recent first. Every material decision gets an entry. Format:
 - **Alternatives:** Free-text tags (messy, hard to query), larger list (fatigue).
 - **Revisit when:** A category is used by <2% of users for >60 days (consolidate), or a missing category is requested repeatedly (add).
 
+### 2026-04-25 — Waitlist code split into a separate repo
+- **Decision:** The waitlist landing's source moved from this repo's `main` branch to a new private repo, `sunilvijendra/renewl-waitlist`. The Vercel project `renewl` (URL `renewls.vercel.app`) is now connected to that repo; this repo only powers `renewl-live` (the MVP).
+- **Why:** Keeps the two surfaces — waitlist and MVP — independently deployable. After the split, this repo's `main` can be replaced by the MVP code (via the eventual `dev/mvp1` → `main` merge) without disturbing the live waitlist. The waitlist repo can also be edited directly (e.g. a "launching soon" banner) without coupling to MVP work.
+- **Alternatives:** Keep both surfaces in one repo with branch-driven routing (gross, risk of accidental cross-merge), or do a git-history rewrite on this repo's `main` (avoidable destructive op).
+- **How verified:** New repo created, single commit pushed, Vercel `renewl` project disconnected from this repo and reconnected to `renewl-waitlist`, fresh email submitted at `renewls.vercel.app` and confirmed landing in the `silent-albatross-349` `waitlist` table.
+- **Revisit when:** Cutover begins (Phase 4 of `GO-LIVE-PREP.md` retires `renewl-waitlist` alongside the `renewl` Vercel project).
+
 ### 2026-04-24 — Waitlist landing live
 - **Decision:** Shipped the waitlist landing at `renewls.vercel.app` (Vercel project `renewl`) on 2026-04-24. Email capture → Convex `waitlist` table.
 - **Why:** Gate sign-ups while we build; validate the copy + positioning; buy ourselves a week to build without pressure.
@@ -259,6 +258,7 @@ Append-only. Most recent first. Every material decision gets an entry. Format:
 
 ## 12. Changelog
 
+- **2026-04-25** — Split the live waitlist into its own repo `sunilvijendra/renewl-waitlist` (private, single commit). Vercel project `renewl` (URL `renewls.vercel.app`) reconnected to that repo; Convex deployment `silent-albatross-349` and existing waitlist data are unchanged. Validated end-to-end with a fresh email submission. This repo's `main` branch is now stale waitlist code that will be replaced by the MVP via the eventual `dev/mvp1` → `main` merge.
 - **2026-04-25** — Replaced the waitlist landing on `dev/mvp1` (`/` route) with the MVP product landing: same headline/bullets/trust line, but the email-capture form is now a "Sign in" CTA → `/sign-in` (server-aware: shows "Open dashboard" → `/dashboard` if already authed). `app/waitlist-form.tsx` deleted. `convex/waitlist.ts` and the `waitlist` table kept (preserves data on `silent-albatross-349` until a migration plan lands; harmless on `kindly-quail-882`). Added the prod-promotion pre-merge checklist to §10.
 - **2026-04-25** — Renamed the **dev** Vercel project (formerly `renewls-dev`) to `renewl-live`; URL is now `https://renewl-live.vercel.app`. The live waitlist project (`renewl` on Vercel, URL `renewls.vercel.app`) is unchanged. Updated scope-doc references throughout.
 - **2026-04-25** — End-to-end smoke test on the dev URL (then `renewls-dev.vercel.app`, now `renewl-live.vercel.app`) green for the full MVP. Two fixes during the test: (a) post-magic-link landing was at `/` not `/dashboard` — added a `redirectTo=/dashboard` hidden input to the sign-in form; (b) renewal-alert dedup never matched because it compared `sentAt` against tomorrow IST midnight — added an optional `forDayMs` field on `alerts` and dedup on exact equality. Domain bought + verified in Resend; auth + alert email senders are now on the verified domain.
