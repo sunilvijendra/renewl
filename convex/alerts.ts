@@ -79,10 +79,12 @@ export const _maybeSendOne = internalMutation({
   handler: async (ctx, { userId, subscriptionId, dayMs }) => {
     const existing = await ctx.db
       .query("alerts")
-      .withIndex("by_subscription_and_type", (q) =>
-        q.eq("subscriptionId", subscriptionId).eq("type", "day_before"),
+      .withIndex("by_subscription_type_and_forDayMs", (q) =>
+        q
+          .eq("subscriptionId", subscriptionId)
+          .eq("type", "day_before")
+          .eq("forDayMs", dayMs),
       )
-      .filter((q) => q.eq(q.field("forDayMs"), dayMs))
       .first();
     if (existing) return;
 
@@ -117,9 +119,11 @@ export const sendEmail = internalAction({
     if (!fromAddr) {
       throw new Error("ALERTS_EMAIL_FROM is not set on Convex env.");
     }
-    const dashboardUrl = process.env.SITE_URL
-      ? `${process.env.SITE_URL.replace(/\/$/, "")}/dashboard`
-      : "https://renewls-dev.vercel.app/dashboard";
+    const siteUrl = process.env.SITE_URL;
+    if (!siteUrl) {
+      throw new Error("SITE_URL is not set on Convex env.");
+    }
+    const dashboardUrl = `${siteUrl.replace(/\/$/, "")}/dashboard`;
 
     const tpl = dayBeforeAlert({ sub: data.sub, dashboardUrl });
 

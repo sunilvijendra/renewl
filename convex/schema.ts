@@ -96,5 +96,9 @@ export default defineSchema({
     type: v.union(v.literal("day_before")),
     sentAt: v.number(),
     forDayMs: v.optional(v.number()),
-  }).index("by_subscription_and_type", ["subscriptionId", "type"]),
+  }).index("by_subscription_type_and_forDayMs", [
+    "subscriptionId",
+    "type",
+    "forDayMs",
+  ]),
 });
