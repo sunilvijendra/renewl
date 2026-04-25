@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "Renewl — Every recurring charge. One dashboard.",
   description:
     "Forward or upload your receipts. Renewl tells you what's auto-renewing, when, and for how much — before it hits your account.",
-  metadataBase: new URL("https://renewl.vercel.app"),
+  metadataBase: new URL("https://renewl-live.vercel.app"),
   openGraph: {
     title: "Renewl — Every recurring charge. One dashboard.",
     description:

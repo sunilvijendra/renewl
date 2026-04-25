@@ -2,7 +2,7 @@
 
 ## Context
 
-Renewl ships its first usable version on `dev/mvp1` → Vercel project `renewls-dev`. The live waitlist on `main` → `renewls.vercel.app` stays untouched.
+Renewl ships its first usable version on `dev/mvp1` → Vercel project `renewls-dev`. The live waitlist on `main` → `renewl-live.vercel.app` (Vercel project `renewl-live`) stays untouched.
 
 **What we're delivering** (per `docs/scope.md`):
 - magic-link sign-in via Convex Auth + Resend

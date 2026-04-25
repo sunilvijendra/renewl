@@ -5,8 +5,8 @@
 > Read top-to-bottom in ~10 minutes. Update any time a decision changes.
 
 **Last updated:** 2026-04-25
-**Status:** MVP integration-complete on `dev/mvp1` and smoke-tested end-to-end on `renewls-dev.vercel.app` (steps 1–9 of the plan green: waitlist intact, magic-link sign-in, manual entry, paste parse, upload parse with vision, edit, delete, replace flow at cap, renewal-alert cron with dedup, 24h file cleanup cron). Open: promotion to prod (point `renewls` Vercel at a Convex prod deployment of `renewl-app` and retire `renewls-dev`), then opening to waitlist users.
-**Live URL:** https://renewls.vercel.app
+**Status:** MVP integration-complete on `dev/mvp1` and smoke-tested end-to-end on `renewls-dev.vercel.app` (steps 1–9 of the plan green: waitlist intact, magic-link sign-in, manual entry, paste parse, upload parse with vision, edit, delete, replace flow at cap, renewal-alert cron with dedup, 24h file cleanup cron). Open: promotion to prod (point `renewl-live` Vercel at a Convex prod deployment of `renewl-app` and retire `renewls-dev`), then opening to waitlist users.
+**Live URL:** https://renewl-live.vercel.app
 **Dev URL:** https://renewls-dev.vercel.app (deploys from `dev/mvp1`, reads from Convex project `renewl-app` / deployment `kindly-quail-882`)
 
 ---
@@ -154,8 +154,8 @@ Planned (MVP) — written to `convex/schema.ts` on 2026-04-25:
 ## 10. Open questions
 
 - **Optional "essential" flag on each item?** — would let the discovery UX highlight non-essentials the user might forget. Parked for MVP unless the "find the ones you forgot" story feels weak without it.
-- **Domain.** A real domain was bought + verified in Resend on 2026-04-25 (used as the magic-link + alert sender on `renewls-dev`). Open: whether to also point the public `renewls.vercel.app` waitlist at a custom domain before opening the MVP.
-- **Prod vs dev Convex deployment.** The legacy waitlist `renewls` Vercel still reads from `silent-albatross-349` (dev). The MVP build runs against a separate `renewl-app` project on `kindly-quail-882` (also dev). Needs a prod Convex deployment of `renewl-app`, with `renewls` Vercel re-pointed there before opening to waitlist users — at which point `renewls-dev` is retired.
+- **Domain.** A real domain was bought + verified in Resend on 2026-04-25 (used as the magic-link + alert sender on `renewls-dev`). Open: whether to also point the public `renewl-live.vercel.app` waitlist at a custom domain before opening the MVP.
+- **Prod vs dev Convex deployment.** The legacy waitlist `renewl-live` Vercel still reads from `silent-albatross-349` (dev). The MVP build runs against a separate `renewl-app` project on `kindly-quail-882` (also dev). Needs a prod Convex deployment of `renewl-app`, with `renewl-live` Vercel re-pointed there before opening to waitlist users — at which point `renewls-dev` is retired.
 - **Post-launch analytics.** None wired yet. Week-one question: do we install Plausible / PostHog / Vercel Analytics?
 - **Delete-receipt UX.** 24h auto-delete is decided; do we also give users a "delete now" button? Probably yes, cheap to add.
 - **Parse accuracy eval.** §11 revisit threshold is <90% on a 100-receipt eval. No eval set built yet. Open: whether to run one before public open or wait for real user reports.
@@ -184,10 +184,10 @@ Append-only. Most recent first. Every material decision gets an entry. Format:
 - **Revisit when:** A category slug needs renaming (one-shot data migration), we expose multi-currency, or `_creationTime` proves insufficient for any audit need.
 
 ### 2026-04-25 — Dev environment isolation: `renewls-dev` Vercel + `renewl-app` Convex
-- **Decision:** MVP build runs on a separate Vercel project (`renewls-dev`, prod branch `dev/mvp1`) reading from a separate Convex project (`renewl-app`, dev deployment `kindly-quail-882`). Live waitlist (`renewls` Vercel + `silent-albatross-349` Convex) stays untouched.
+- **Decision:** MVP build runs on a separate Vercel project (`renewls-dev`, prod branch `dev/mvp1`) reading from a separate Convex project (`renewl-app`, dev deployment `kindly-quail-882`). Live waitlist (`renewl-live` Vercel + `silent-albatross-349` Convex) stays untouched.
 - **Why:** Lets us iterate on schema, mutations, and actions without risking the live waitlist mid-build.
-- **Alternatives considered:** Vercel preview deploys on the existing `renewls` project (no domain stability, shares Convex), or sharing `silent-albatross-349` Convex (live waitlist breaks if a schema iteration is bad).
-- **Revisit when:** MVP is ready to merge to `main`; at that point we promote `renewl-app` to a Convex prod deployment, repoint `renewls` Vercel to it, and retire `renewls-dev`.
+- **Alternatives considered:** Vercel preview deploys on the existing `renewl-live` project (no domain stability, shares Convex), or sharing `silent-albatross-349` Convex (live waitlist breaks if a schema iteration is bad).
+- **Revisit when:** MVP is ready to merge to `main`; at that point we promote `renewl-app` to a Convex prod deployment, repoint `renewl-live` Vercel to it, and retire `renewls-dev`.
 
 ### 2026-04-24 — Auth: magic-link email via Convex Auth
 - **Decision:** Email magic-link sign-in. No password, no OAuth.
@@ -244,13 +244,14 @@ Append-only. Most recent first. Every material decision gets an entry. Format:
 - **Revisit when:** A category is used by <2% of users for >60 days (consolidate), or a missing category is requested repeatedly (add).
 
 ### 2026-04-24 — Waitlist landing live
-- **Decision:** Shipped the waitlist landing at `renewls.vercel.app` on 2026-04-24. Email capture → Convex `waitlist` table.
+- **Decision:** Shipped the waitlist landing on 2026-04-24 (originally at `renewls.vercel.app`; the Vercel project was renamed to `renewl-live` on 2026-04-25, so the URL is now `renewl-live.vercel.app`). Email capture → Convex `waitlist` table.
 - **Why:** Gate sign-ups while we build; validate the copy + positioning; buy ourselves a week to build without pressure.
 - **Alternatives:** Ship the app directly (higher risk, no user buffer).
 - **Revisit when:** MVP is ready to open to waitlist users.
 
 ## 12. Changelog
 
+- **2026-04-25** — Renamed the live Vercel project from `renewls` to `renewl-live`; new URL `https://renewl-live.vercel.app`. Updated `metadataBase` in `app/layout.tsx` and all scope-doc references. The dev project `renewls-dev` is unchanged.
 - **2026-04-25** — End-to-end smoke test on `renewls-dev.vercel.app` green for the full MVP. Two fixes during the test: (a) post-magic-link landing was at `/` not `/dashboard` — added a `redirectTo=/dashboard` hidden input to the sign-in form; (b) renewal-alert dedup never matched because it compared `sentAt` against tomorrow IST midnight — added an optional `forDayMs` field on `alerts` and dedup on exact equality. Domain bought + verified in Resend; auth + alert email senders are now on the verified domain.
 - **2026-04-25** — Swapped parser provider from `@ai-sdk/anthropic` (Claude Haiku 4.5) to `@ai-sdk/openai` (gpt-4o-mini) to use existing OpenAI credits. Code change is one-line in `convex/parser.ts`; env var on Convex is now `OPENAI_API_KEY` instead of `ANTHROPIC_API_KEY`.
 - **2026-04-25** — Built the MVP end-to-end on `dev/mvp1`: Convex Auth magic-link sign-in via Resend, file upload + paste ingestion, Claude Haiku 4.5 parser (Vercel AI SDK v6, `@ai-sdk/anthropic`), parse-review card with cap-aware confirm/replace/discard, dashboard list with edit-in-place + delete + view-receipt, manual entry, daily 08:00 IST renewal-alert cron via `@convex-dev/resend` component, hourly 24h file cleanup cron. Schema swap: spread `authTables` (replacing the placeholder `users`), added `fileExpiresAt` + `by_fileExpiresAt` indexes on subscriptions/parseJobs/pendingParses. Build green; awaiting domain verification + Convex env vars (ANTHROPIC_API_KEY, AUTH_RESEND_KEY, RESEND_API_KEY, AUTH_EMAIL_FROM, ALERTS_EMAIL_FROM) before end-to-end smoke test.
