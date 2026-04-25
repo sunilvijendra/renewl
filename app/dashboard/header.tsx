@@ -1,7 +1,6 @@
 "use client";
 
 import { useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +8,6 @@ import Link from "next/link";
 import { LogoPlain } from "../logo";
 
 export function DashboardHeader() {
-  const router = useRouter();
   const { signOut } = useAuthActions();
   const me = useQuery(api.users.me, {});
   const [pending, startTransition] = useTransition();
@@ -17,8 +15,15 @@ export function DashboardHeader() {
   function handleSignOut() {
     if (pending) return;
     startTransition(async () => {
-      await signOut();
-      router.push("/");
+      try {
+        await signOut();
+      } catch {
+        // fall through to the redirect either way — clears local state
+      }
+      // full browser navigation so the dashboard's convex queries can't
+      // throw "not signed in" mid-soft-navigation and surface as a
+      // "this page couldn't load" error.
+      window.location.assign("/");
     });
   }
 
