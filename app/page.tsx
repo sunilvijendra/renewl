@@ -97,7 +97,7 @@ export default async function Page() {
 
       <footer className="mx-auto w-full max-w-[640px] md:max-w-[720px] lg:max-w-[780px] mt-12 sm:mt-16 pt-6 border-t border-hairline flex flex-col sm:flex-row items-baseline justify-between gap-2 font-sans text-[13px] text-ink-muted">
         <span>© 2026 Renewl</span>
-        <span>Free during MVP &middot; Pro plan coming soon.</span>
+        <span>Limited Time Free Plan &middot; Pro plan launching soon</span>
       </footer>
     </main>
   );
