@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
 
 const categoryValidator = v.union(
   v.literal("streaming"),
@@ -33,14 +34,12 @@ const extractedValidator = v.object({
 });
 
 export default defineSchema({
+  ...authTables,
+
   waitlist: defineTable({
     email: v.string(),
     createdAt: v.number(),
     source: v.string(),
-  }).index("by_email", ["email"]),
-
-  users: defineTable({
-    email: v.string(),
   }).index("by_email", ["email"]),
 
   subscriptions: defineTable({
@@ -52,14 +51,17 @@ export default defineSchema({
     nextRenewal: v.number(),
     confidence: v.optional(v.number()),
     fileId: v.optional(v.id("_storage")),
+    fileExpiresAt: v.optional(v.number()),
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
-    .index("by_user_and_nextRenewal", ["userId", "nextRenewal"]),
+    .index("by_user_and_nextRenewal", ["userId", "nextRenewal"])
+    .index("by_fileExpiresAt", ["fileExpiresAt"]),
 
   parseJobs: defineTable({
     userId: v.id("users"),
     fileId: v.optional(v.id("_storage")),
+    fileExpiresAt: v.optional(v.number()),
     pastedText: v.optional(v.string()),
     extracted: v.optional(extractedValidator),
     status: v.union(
@@ -70,18 +72,23 @@ export default defineSchema({
     ),
     attempts: v.number(),
     lastError: v.optional(v.string()),
-  }).index("by_user_and_status", ["userId", "status"]),
+  })
+    .index("by_user_and_status", ["userId", "status"])
+    .index("by_fileExpiresAt", ["fileExpiresAt"]),
 
   pendingParses: defineTable({
     userId: v.id("users"),
     extracted: extractedValidator,
     fileId: v.optional(v.id("_storage")),
+    fileExpiresAt: v.optional(v.number()),
     status: v.union(
       v.literal("awaiting_review"),
       v.literal("replaced"),
       v.literal("discarded"),
     ),
-  }).index("by_user_and_status", ["userId", "status"]),
+  })
+    .index("by_user_and_status", ["userId", "status"])
+    .index("by_fileExpiresAt", ["fileExpiresAt"]),
 
   alerts: defineTable({
     userId: v.id("users"),

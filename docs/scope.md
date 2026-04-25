@@ -5,7 +5,7 @@
 > Read top-to-bottom in ~10 minutes. Update any time a decision changes.
 
 **Last updated:** 2026-04-25
-**Status:** Pre-build (waitlist landing live; MVP schema written, build not yet started)
+**Status:** MVP code complete on `dev/mvp1` (auth, ingestion, parser, dashboard, replace flow, alerts cron, file cleanup cron). Pending: domain verification + Convex env vars before end-to-end smoke test on the deployed dev URL.
 **Live URL:** https://renewls.vercel.app
 **Dev URL:** https://renewls-dev.vercel.app (deploys from `dev/mvp1`, reads from Convex project `renewl-app` / deployment `kindly-quail-882`)
 
@@ -244,5 +244,6 @@ Append-only. Most recent first. Every material decision gets an entry. Format:
 
 ## 12. Changelog
 
+- **2026-04-25** — Built the MVP end-to-end on `dev/mvp1`: Convex Auth magic-link sign-in via Resend, file upload + paste ingestion, Claude Haiku 4.5 parser (Vercel AI SDK v6, `@ai-sdk/anthropic`), parse-review card with cap-aware confirm/replace/discard, dashboard list with edit-in-place + delete + view-receipt, manual entry, daily 08:00 IST renewal-alert cron via `@convex-dev/resend` component, hourly 24h file cleanup cron. Schema swap: spread `authTables` (replacing the placeholder `users`), added `fileExpiresAt` + `by_fileExpiresAt` indexes on subscriptions/parseJobs/pendingParses. Build green; awaiting domain verification + Convex env vars (ANTHROPIC_API_KEY, AUTH_RESEND_KEY, RESEND_API_KEY, AUTH_EMAIL_FROM, ALERTS_EMAIL_FROM) before end-to-end smoke test.
 - **2026-04-25** — Locked MVP schema and wrote `convex/schema.ts`. Set up `renewls-dev` Vercel project on `dev/mvp1` reading from new `renewl-app` Convex deployment so the live waitlist stays untouched during the build.
 - **2026-04-24** — Initial scope doc created. Captures all decisions taken during the pre-build scoping session: MVP shape, parser + ingestion, auth, retention, item cap, category list. Waitlist landing is live; MVP build begins next.

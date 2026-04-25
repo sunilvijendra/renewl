@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Instrument_Serif } from "next/font/google";
 import { GeistSans } from "geist/font/sans";
+import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -28,13 +29,15 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="en"
-      className={`${GeistSans.variable} ${instrumentSerif.variable} antialiased`}
-    >
-      <body className="min-h-dvh bg-paper text-ink font-sans">
-        <Providers>{children}</Providers>
-      </body>
-    </html>
+    <ConvexAuthNextjsServerProvider>
+      <html
+        lang="en"
+        className={`${GeistSans.variable} ${instrumentSerif.variable} antialiased`}
+      >
+        <body className="min-h-dvh bg-paper text-ink font-sans">
+          <Providers>{children}</Providers>
+        </body>
+      </html>
+    </ConvexAuthNextjsServerProvider>
   );
 }
