@@ -1,7 +1,7 @@
 export function LogoPlain({ className }: { className?: string }) {
   return (
     <span
-      className={`font-display text-[22px] leading-none tracking-tight ${className ?? ""}`}
+      className={`font-display text-[24px] sm:text-[28px] md:text-[32px] leading-none tracking-tight ${className ?? ""}`}
     >
       Renewl
     </span>
@@ -11,7 +11,7 @@ export function LogoPlain({ className }: { className?: string }) {
 export function LogoSignature({ className }: { className?: string }) {
   return (
     <span
-      className={`font-display text-[22px] leading-none tracking-tight inline-flex items-baseline ${className ?? ""}`}
+      className={`font-display text-[24px] sm:text-[28px] md:text-[32px] leading-none tracking-tight inline-flex items-baseline ${className ?? ""}`}
       aria-label="Renewl"
     >
       <span aria-hidden>Rene</span>

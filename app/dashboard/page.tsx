@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import type { Id, Doc } from "@/convex/_generated/dataModel";
+import type { Doc } from "@/convex/_generated/dataModel";
 import { DashboardHeader } from "./header";
 import { SubForm, type SubFormValues } from "./_components/sub-form";
 import {
@@ -14,9 +14,39 @@ import {
 } from "@/lib/categories";
 import { formatRelativeIst } from "@/lib/dates";
 
+type SortKey = "next" | "amount_desc" | "amount_asc" | "vendor";
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: "next", label: "Next renewal" },
+  { value: "amount_desc", label: "Amount: high to low" },
+  { value: "amount_asc", label: "Amount: low to high" },
+  { value: "vendor", label: "Vendor: A–Z" },
+];
+
 export default function DashboardPage() {
   const subs = useQuery(api.subscriptions.listMine, {});
   const pendingInbox = useQuery(api.pendingParses.listMine, {});
+  const [sortKey, setSortKey] = useState<SortKey>("next");
+
+  const sortedSubs = useMemo(() => {
+    if (!subs) return undefined;
+    const arr = [...subs];
+    switch (sortKey) {
+      case "next":
+        arr.sort((a, b) => a.nextRenewal - b.nextRenewal);
+        break;
+      case "amount_desc":
+        arr.sort((a, b) => b.amountInr - a.amountInr);
+        break;
+      case "amount_asc":
+        arr.sort((a, b) => a.amountInr - b.amountInr);
+        break;
+      case "vendor":
+        arr.sort((a, b) => a.vendor.localeCompare(b.vendor));
+        break;
+    }
+    return arr;
+  }, [subs, sortKey]);
 
   return (
     <main className="min-h-dvh px-6 sm:px-10 md:px-16 pt-8 pb-12">
@@ -57,16 +87,38 @@ export default function DashboardPage() {
             </CTA>
           </div>
 
-          {subs === undefined ? (
+          {sortedSubs === undefined ? (
             <p className="font-sans text-[14px] text-ink-soft">Loading…</p>
-          ) : subs.length === 0 ? (
+          ) : sortedSubs.length === 0 ? (
             <EmptyState />
           ) : (
-            <ul className="flex flex-col gap-3">
-              {subs.map((sub) => (
-                <SubRow key={sub._id} sub={sub} />
-              ))}
-            </ul>
+            <>
+              <div className="flex items-center justify-end gap-2 mb-3">
+                <label
+                  htmlFor="sort"
+                  className="font-sans text-[12px] uppercase tracking-[0.14em] text-ink-soft"
+                >
+                  Sort
+                </label>
+                <select
+                  id="sort"
+                  value={sortKey}
+                  onChange={(e) => setSortKey(e.target.value as SortKey)}
+                  className="font-sans text-[13px] text-ink bg-paper-deep border border-hairline-strong rounded-sm px-2 py-1 focus:outline-none focus:border-accent"
+                >
+                  {SORT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <ul className="flex flex-col gap-3">
+                {sortedSubs.map((sub) => (
+                  <SubRow key={sub._id} sub={sub} />
+                ))}
+              </ul>
+            </>
           )}
         </section>
       </div>
