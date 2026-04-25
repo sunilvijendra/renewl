@@ -1,5 +1,6 @@
 # Renewl — Scope Document
 
+
 > Single source of truth for what Renewl is, who it's for, and what we've decided.
 > Read top-to-bottom in ~10 minutes. Update any time a decision changes.
 
