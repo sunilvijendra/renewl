@@ -18,7 +18,7 @@ export function DashboardHeader() {
     if (pending) return;
     startTransition(async () => {
       await signOut();
-      router.push("/sign-in");
+      router.push("/");
     });
   }
 
