@@ -62,11 +62,43 @@ export default async function Page() {
           ))}
         </ul>
 
+        <div className="mt-16 sm:mt-20">
+          <p className="font-sans text-[12px] sm:text-[13px] uppercase tracking-[0.18em] text-ink-soft mb-6">
+            How it works
+          </p>
+          <ol className="flex flex-col gap-6 max-w-[560px]">
+            {STEPS.map((step, i) => (
+              <li key={step.title} className="flex items-start gap-5">
+                <span className="font-display text-[28px] text-accent w-6 shrink-0 leading-none mt-[2px]">
+                  {i + 1}
+                </span>
+                <div>
+                  <p className="font-display text-[20px] text-ink leading-tight">
+                    {step.title}
+                  </p>
+                  <p className="mt-1 font-sans text-[15px] text-ink-soft leading-[1.55]">
+                    {step.body}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-7 font-sans italic text-[13px] sm:text-[14px] text-ink-soft max-w-[560px]">
+            Uploaded receipts auto-delete after 24 hours. We keep only the
+            parsed details.
+          </p>
+        </div>
+
         <p className="mt-14 sm:mt-16 md:mt-20 pt-6 border-t border-hairline font-sans italic text-[13px] sm:text-[14px] leading-[1.6] text-ink-soft tracking-[0.005em] max-w-[560px]">
           Built for people who&rsquo;ve found a ₹1,499 charge they didn&rsquo;t
           remember signing up for.
         </p>
       </section>
+
+      <footer className="mx-auto w-full max-w-[640px] md:max-w-[720px] lg:max-w-[780px] mt-12 sm:mt-16 pt-6 border-t border-hairline flex flex-col sm:flex-row items-baseline justify-between gap-2 font-sans text-[13px] text-ink-muted">
+        <span>© 2026 Renewl</span>
+        <span>Free during MVP &middot; Pro plan coming soon.</span>
+      </footer>
     </main>
   );
 }
@@ -75,6 +107,21 @@ const BULLETS = [
   "See every subscription, warranty, and auto-renewal in one place",
   "Get a heads-up the morning before anything charges",
   "Find the ones you forgot you were paying for",
+] as const;
+
+const STEPS = [
+  {
+    title: "Drop in a receipt",
+    body: "Upload a PDF or image, or paste the text from an email.",
+  },
+  {
+    title: "Review the parsed card",
+    body: "Vendor, amount, cycle, next charge — all extracted. Edit anything, then confirm.",
+  },
+  {
+    title: "We email you the morning before",
+    body: "08:00 IST, the day before any auto-renewal hits your account.",
+  },
 ] as const;
 
 function TickGlyph({ className }: { className?: string }) {
