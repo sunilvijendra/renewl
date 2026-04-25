@@ -15,6 +15,10 @@
   --font-display: var(--font-display), ui-serif, Georgia, serif;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 html,
 body {
   background: var(--color-paper);

@@ -11,12 +11,20 @@ export default async function Page() {
     <main className="min-h-dvh flex flex-col px-6 sm:px-10 md:px-16 pt-8 sm:pt-10 md:pt-14 pb-12">
       <header className="mx-auto w-full max-w-[640px] md:max-w-[720px] lg:max-w-[780px] flex items-center justify-between">
         <LogoPlain className="text-ink" />
-        <Link
-          href={ctaHref}
-          className="font-sans text-[14px] text-ink-soft hover:text-accent transition-colors"
-        >
-          {isAuthed ? "Dashboard" : "Sign in"}
-        </Link>
+        <nav className="flex items-center gap-5 sm:gap-7">
+          <a
+            href="#how-it-works"
+            className="font-sans text-[14px] text-ink-soft hover:text-accent transition-colors"
+          >
+            How it works
+          </a>
+          <Link
+            href={ctaHref}
+            className="font-sans text-[14px] text-ink-soft hover:text-accent transition-colors"
+          >
+            {isAuthed ? "Dashboard" : "Sign in"}
+          </Link>
+        </nav>
       </header>
 
       <section className="flex-1 flex flex-col justify-center mx-auto w-full max-w-[640px] md:max-w-[720px] lg:max-w-[780px] mt-16 sm:mt-20 md:mt-24">
@@ -62,7 +70,7 @@ export default async function Page() {
           ))}
         </ul>
 
-        <div className="mt-16 sm:mt-20">
+        <div id="how-it-works" className="mt-16 sm:mt-20 scroll-mt-8">
           <p className="font-sans text-[12px] sm:text-[13px] uppercase tracking-[0.18em] text-ink-soft mb-6">
             How it works
           </p>
