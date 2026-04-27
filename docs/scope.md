@@ -4,8 +4,8 @@
 > Single source of truth for what Renewl is, who it's for, and what we've decided.
 > Read top-to-bottom in ~10 minutes. Update any time a decision changes.
 
-**Last updated:** 2026-04-25
-**Status:** MVP integration-complete on `dev/mvp1` and smoke-tested end-to-end on `renewl-live.vercel.app` (waitlist intact, magic-link sign-in, manual entry, paste parse, upload parse with vision, edit, delete, replace flow at cap, renewal-alert cron with dedup, 24h file cleanup cron). On `dev/mvp1`, `/` now shows the MVP product landing (CTA → `/sign-in` or `/dashboard` if authed); the email-capture waitlist form has been removed in preparation for merge to `main`. Open: prod-promotion checklist below in §10 must complete before `dev/mvp1` is merged to `main`.
+**Last updated:** 2026-04-27
+**Status:** MVP merged to `main`, deployed to `renewl-live.vercel.app` (custom domain `renewl.in`), opened as **Beta** to the existing waitlist cohort. Backend still on Convex dev deployment (`kindly-quail-882`); prod-promotion deferred until next iteration per §10 plan. Mobile UX restructured 2026-04-27: dashboard header collapses to a hamburger menu (email + Feedback + Sign out inside); subscription rows are compact + expandable per row.
 **Live URL:** https://renewls.vercel.app (Vercel project: `renewl`, source: separate repo `sunilvijendra/renewl-waitlist`, Convex: `silent-albatross-349`)
 **Dev URL:** https://renewl-live.vercel.app (Vercel project: `renewl-live`, formerly `renewls-dev`; deploys from this repo's `dev/mvp1`, reads from Convex project `renewl-app` / deployment `kindly-quail-882`)
 
@@ -183,6 +183,12 @@ Append-only. Most recent first. Every material decision gets an entry. Format:
 - **Alternatives considered:** Display-string categories (uglier slug-key in UI), rupees as float (drift on totals), ISO date strings (heavier, less ergonomic for `by_user_and_nextRenewal` range queries), a third "draft" table for pre-confirm parses (`parseJobs.extracted` covers it).
 - **Revisit when:** A category slug needs renaming (one-shot data migration), we expose multi-currency, or `_creationTime` proves insufficient for any audit need.
 
+### 2026-04-27 — Mobile-first dashboard restructure
+- **Decision:** Replace the inline header cluster (`<email> · Feedback · Sign out`) with a **hamburger menu** that opens a small panel containing: signed-in email, Feedback button, Sign out button. Replace the single-line subscription row layout with a **compact-by-default row** that expands per-row to reveal category, receipt link, and Edit/Delete actions. Both apply at all breakpoints (not mobile-only) for consistent affordance across devices.
+- **Why:** Beta tester observed on mobile that (a) the header overflowed because long emails + Feedback + Sign out collided with the logo, and (b) subscription rows crammed action buttons against vendor info. Compact rows scale from "I just want a glance at what's renewing" to "I want to do something with this row" without changing layout.
+- **Alternatives considered:** (1) Mobile-only hamburger (`md:hidden`) — rejected for behavior consistency; users on different devices shouldn't see different affordances. (2) Truncating the email in-place — rejected because the email is useful context, better placed inside an explicit "Signed in as" panel. (3) Always-expanded rows with smaller text — rejected; even small text crowds on phone widths.
+- **Revisit when:** A user reports the menu/expand pattern feels heavy at scale (>20 subs), or the dashboard adds chrome that demands a different layout (e.g., a Pro-tier sidebar).
+
 ### 2026-04-25 — Dev environment isolation: separate Vercel project + separate Convex project
 - **Decision:** MVP build runs on a separate Vercel project (originally created as `renewls-dev`, renamed to `renewl-live` on 2026-04-25; prod branch `dev/mvp1`) reading from a separate Convex project (`renewl-app`, dev deployment `kindly-quail-882`). Live waitlist (Vercel project `renewl` at `renewls.vercel.app` + `silent-albatross-349` Convex) stays untouched.
 - **Why:** Lets us iterate on schema, mutations, and actions without risking the live waitlist mid-build.
@@ -264,6 +270,7 @@ Append-only. Most recent first. Every material decision gets an entry. Format:
 
 ## 12. Changelog
 
+- **2026-04-27** — Mobile-first dashboard restructure. `app/dashboard/header.tsx`: header right-side cluster replaced with a hamburger menu (`<HamburgerIcon />` button → dropdown with "Signed in as <email>", Feedback, Sign out). Click-outside / Esc / item-click all close the menu. `app/dashboard/page.tsx` (`SubRow`): per-row state machine `compact | expanded | editing | confirmingDelete`. Compact shows vendor + amount/cycle/date + chevron. Click row to expand → reveals category + Receipt/Edit/Delete. Edit transitions to existing `SubForm`. `getReceiptUrl` only fetches when expanded, saving Convex queries.
 - **2026-04-27** — Beta cap reduced from 10 to 7 in code (`parseJobs.ts`, `subscriptions.ts`, dashboard UI) and docs (§4, §5, §6 roadmap, §8 data-model note, §9 constants, §11 entry). Existing Beta users with >7 items will not be retroactively trimmed; new add/parse attempts past 7 trigger the replace flow (parse) or hard error (manual entry).
 - **2026-04-25** — Split the live waitlist into its own repo `sunilvijendra/renewl-waitlist` (private, single commit). Vercel project `renewl` (URL `renewls.vercel.app`) reconnected to that repo; Convex deployment `silent-albatross-349` and existing waitlist data are unchanged. Validated end-to-end with a fresh email submission. This repo's `main` branch is now stale waitlist code that will be replaced by the MVP via the eventual `dev/mvp1` → `main` merge.
 - **2026-04-25** — Replaced the waitlist landing on `dev/mvp1` (`/` route) with the MVP product landing: same headline/bullets/trust line, but the email-capture form is now a "Sign in" CTA → `/sign-in` (server-aware: shows "Open dashboard" → `/dashboard` if already authed). `app/waitlist-form.tsx` deleted. `convex/waitlist.ts` and the `waitlist` table kept (preserves data on `silent-albatross-349` until a migration plan lands; harmless on `kindly-quail-882`). Added the prod-promotion pre-merge checklist to §10.

@@ -160,17 +160,21 @@ function CTA({
 }
 
 function SubRow({ sub }: { sub: Doc<"subscriptions"> }) {
-  const [mode, setMode] = useState<"view" | "edit" | "confirmingDelete">(
-    "view",
-  );
+  const [mode, setMode] = useState<
+    "compact" | "expanded" | "editing" | "confirmingDelete"
+  >("compact");
   const update = useMutation(api.subscriptions.update);
   const remove = useMutation(api.subscriptions.remove);
+
+  const isExpanded = mode === "expanded" || mode === "confirmingDelete";
+
+  // Only fetch the signed receipt URL when the row is open.
   const receiptUrl = useQuery(
     api.subscriptions.getReceiptUrl,
-    sub.fileId ? { subscriptionId: sub._id } : "skip",
+    isExpanded && sub.fileId ? { subscriptionId: sub._id } : "skip",
   );
 
-  if (mode === "edit") {
+  if (mode === "editing") {
     const initial: SubFormValues = {
       vendor: sub.vendor,
       amountInr: sub.amountInr,
@@ -185,7 +189,7 @@ function SubRow({ sub }: { sub: Doc<"subscriptions"> }) {
         <SubForm
           initial={initial}
           submitLabel="Save"
-          onCancel={() => setMode("view")}
+          onCancel={() => setMode("expanded")}
           onSubmit={async (values) => {
             await update({
               subscriptionId: sub._id,
@@ -197,76 +201,124 @@ function SubRow({ sub }: { sub: Doc<"subscriptions"> }) {
                 category: values.category,
               },
             });
-            setMode("view");
+            setMode("compact");
           }}
         />
       </li>
     );
   }
 
+  function toggle() {
+    setMode(isExpanded ? "compact" : "expanded");
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggle();
+    }
+  }
+
   return (
-    <li className="border border-hairline-strong bg-paper-deep/40 rounded-sm px-5 py-4 flex items-center justify-between gap-4">
-      <div className="min-w-0">
-        <div className="flex items-baseline gap-3">
+    <li className="border border-hairline-strong bg-paper-deep/40 rounded-sm overflow-hidden">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={toggle}
+        onKeyDown={handleKeyDown}
+        aria-expanded={isExpanded}
+        className="px-5 py-4 flex items-center justify-between gap-4 cursor-pointer hover:bg-paper-deep/60 transition-colors"
+      >
+        <div className="min-w-0 flex-1">
           <p className="font-display text-[20px] text-ink truncate">
             {sub.vendor}
           </p>
+          <p className="font-sans text-[14px] text-ink-soft mt-1">
+            {formatRupees(sub.amountInr)} · {CYCLE_LABELS[sub.cycle]} ·{" "}
+            {formatRelativeIst(sub.nextRenewal)}
+          </p>
+        </div>
+        <ChevronDown
+          className={`shrink-0 text-ink-soft transition-transform duration-200 ${
+            isExpanded ? "rotate-180" : ""
+          }`}
+        />
+      </div>
+
+      {isExpanded && (
+        <div className="px-5 pb-4 pt-3 border-t border-hairline flex flex-wrap items-center gap-x-4 gap-y-3">
           <span className="font-sans text-[12px] uppercase tracking-[0.14em] text-ink-soft">
             {CATEGORY_LABELS[sub.category]}
           </span>
-        </div>
-        <p className="font-sans text-[14px] text-ink-soft mt-1">
-          {formatRupees(sub.amountInr)} · {CYCLE_LABELS[sub.cycle]} · next{" "}
-          {formatRelativeIst(sub.nextRenewal)}
-        </p>
-      </div>
-      <div className="flex items-center gap-3 shrink-0">
-        {receiptUrl && (
-          <a
-            href={receiptUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="font-sans text-[13px] text-ink-soft hover:text-accent transition-colors"
-          >
-            Receipt
-          </a>
-        )}
-        <button
-          type="button"
-          onClick={() => setMode("edit")}
-          className="font-sans text-[13px] text-ink-soft hover:text-accent transition-colors"
-        >
-          Edit
-        </button>
-        {mode === "confirmingDelete" ? (
-          <>
-            <button
-              type="button"
-              onClick={async () => {
-                await remove({ subscriptionId: sub._id });
-              }}
-              className="font-sans text-[13px] text-accent hover:text-accent-hover transition-colors"
-            >
-              Confirm delete
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("view")}
+          <div className="flex-1 min-w-0" />
+          {receiptUrl && (
+            <a
+              href={receiptUrl}
+              target="_blank"
+              rel="noreferrer"
               className="font-sans text-[13px] text-ink-soft hover:text-accent transition-colors"
             >
-              Cancel
-            </button>
-          </>
-        ) : (
+              Receipt
+            </a>
+          )}
           <button
             type="button"
-            onClick={() => setMode("confirmingDelete")}
+            onClick={() => setMode("editing")}
             className="font-sans text-[13px] text-ink-soft hover:text-accent transition-colors"
           >
-            Delete
+            Edit
           </button>
-        )}
-      </div>
+          {mode === "confirmingDelete" ? (
+            <>
+              <button
+                type="button"
+                onClick={async () => {
+                  await remove({ subscriptionId: sub._id });
+                }}
+                className="font-sans text-[13px] text-accent hover:text-accent-hover transition-colors"
+              >
+                Confirm delete
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("expanded")}
+                className="font-sans text-[13px] text-ink-soft hover:text-accent transition-colors"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setMode("confirmingDelete")}
+              className="font-sans text-[13px] text-ink-soft hover:text-accent transition-colors"
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      )}
     </li>
+  );
+}
+
+function ChevronDown({ className }: { className?: string }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      className={className}
+      aria-hidden
+    >
+      <path
+        d="M 3.5 5.5 L 7 9 L 10.5 5.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
