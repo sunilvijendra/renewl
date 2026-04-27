@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Instrument_Serif } from "next/font/google";
 import { GeistSans } from "geist/font/sans";
+import { Analytics } from "@vercel/analytics/next";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -36,6 +37,7 @@ export default function RootLayout({
       >
         <body className="min-h-dvh bg-paper text-ink font-sans">
           <Providers>{children}</Providers>
+          <Analytics />
         </body>
       </html>
     </ConvexAuthNextjsServerProvider>

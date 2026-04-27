@@ -12,6 +12,7 @@
     "@auth/core": "0.37.0",
     "@convex-dev/auth": "^0.0.91",
     "@convex-dev/resend": "^0.2.3",
+    "@vercel/analytics": "^2.0.1",
     "ai": "^6.0.168",
     "convex": "^1.36.0",
     "geist": "^1.7.0",
