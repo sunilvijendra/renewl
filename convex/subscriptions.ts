@@ -111,6 +111,7 @@ export const createManual = mutation({
     const subscriptionId = await ctx.db.insert("subscriptions", {
       ...args,
       userId,
+      ingestionType: "manual" as const,
       updatedAt: Date.now(),
     });
     return { kind: "added" as const, subscriptionId };

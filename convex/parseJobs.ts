@@ -161,6 +161,8 @@ export const confirm = mutation({
 
     const now = Date.now();
 
+    const ingestionType: "upload" | "paste" = job.fileId ? "upload" : "paste";
+
     if (subs.length < 7) {
       const subscriptionId = await ctx.db.insert("subscriptions", {
         userId,
@@ -172,6 +174,7 @@ export const confirm = mutation({
         confidence: edited.confidence,
         fileId: job.fileId,
         fileExpiresAt: job.fileId ? now + FILE_TTL_MS : undefined,
+        ingestionType,
         updatedAt: now,
       });
       await ctx.db.delete(jobId);

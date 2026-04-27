@@ -58,6 +58,8 @@ export const replace = mutation({
       }
     }
 
+    const ingestionType: "upload" | "paste" = pending.fileId ? "upload" : "paste";
+
     await ctx.db.patch(replaceSubscriptionId, {
       vendor: pending.extracted.vendor,
       category: pending.extracted.category,
@@ -67,6 +69,7 @@ export const replace = mutation({
       confidence: pending.extracted.confidence,
       fileId: pending.fileId,
       fileExpiresAt: pending.fileId ? now + FILE_TTL_MS : undefined,
+      ingestionType,
       updatedAt: now,
     });
 

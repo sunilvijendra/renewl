@@ -52,6 +52,9 @@ export default defineSchema({
     confidence: v.optional(v.number()),
     fileId: v.optional(v.id("_storage")),
     fileExpiresAt: v.optional(v.number()),
+    ingestionType: v.optional(
+      v.union(v.literal("upload"), v.literal("paste"), v.literal("manual")),
+    ),
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
