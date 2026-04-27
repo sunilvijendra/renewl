@@ -12,6 +12,7 @@ import type * as alerts from "../alerts.js";
 import type * as auth from "../auth.js";
 import type * as cleanup from "../cleanup.js";
 import type * as crons from "../crons.js";
+import type * as feedback from "../feedback.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_dates from "../lib/dates.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   cleanup: typeof cleanup;
   crons: typeof crons;
+  feedback: typeof feedback;
   http: typeof http;
   "lib/auth": typeof lib_auth;
   "lib/dates": typeof lib_dates;

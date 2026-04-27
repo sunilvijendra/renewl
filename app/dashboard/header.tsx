@@ -1,16 +1,18 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Link from "next/link";
 import { LogoPlain } from "../logo";
+import { FeedbackModal } from "./_components/feedback-modal";
 
 export function DashboardHeader() {
   const { signOut } = useAuthActions();
   const me = useQuery(api.users.me, {});
   const [pending, startTransition] = useTransition();
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   function handleSignOut() {
     if (pending) return;
@@ -39,12 +41,13 @@ export function DashboardHeader() {
         {me?.email && (
           <span className="font-sans text-[13px] text-ink-soft">{me.email}</span>
         )}
-        <a
-          href="mailto:renewl@sunilvijendra.com?subject=Renewl%20Beta%20feedback"
+        <button
+          type="button"
+          onClick={() => setFeedbackOpen(true)}
           className="font-sans text-[13px] text-ink-soft hover:text-accent transition-colors"
         >
           Feedback
-        </a>
+        </button>
         <button
           type="button"
           onClick={handleSignOut}
@@ -54,6 +57,11 @@ export function DashboardHeader() {
           {pending ? "Signing out…" : "Sign out"}
         </button>
       </div>
+      <FeedbackModal
+        open={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        userEmail={me?.email ?? null}
+      />
     </header>
   );
 }
