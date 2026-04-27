@@ -30,7 +30,7 @@ Indian consumers auto-pay dozens of small recurring amounts that individually fe
 
 ## 4. What we're building (MVP)
 
-- **Max 10 tracked line items per user.**
+- **Max 7 tracked line items per user during Beta** (was 10 at MVP launch — reduced 2026-04-27 to sharpen the upgrade pitch when Pro lands; see §11).
 - **Ingestion — two channels in dashboard:**
   - Upload PDF or image of a receipt
   - Paste receipt text into a box
@@ -49,7 +49,7 @@ Indian consumers auto-pay dozens of small recurring amounts that individually fe
   ```
 - **Parse UX:** user sees the parsed card, can edit any field, confirms → lands in tracker. If `is_subscription === false` or `confidence < 0.6`, card shows "Looks one-time — add anyway?" to prevent polluting the tracker with food orders / one-off purchases.
 - **Manual entry** as fallback, using the same schema fields. Used for items without a receipt (gym, cash insurance premium, handshake recurring).
-- **At 10-item cap:** new parses land in a **pending queue**. User picks which existing item to replace. No data loss, no hard block.
+- **At cap (7 in Beta):** new parses land in a **pending queue**. User picks which existing item to replace. No data loss, no hard block.
 - **Auth — magic-link email** via Convex Auth, sent through Resend. No password, no OAuth.
 - **Alerts — email only, day before renewal at 08:00 IST.** Daily Convex cron scans `next_renewal == today + 1` and emails the user.
 - **File retention — 24 hours.** Uploaded PDF/image is deleted from Convex file storage 24h after successful parse. Extracted JSON is retained.
@@ -65,7 +65,7 @@ Things we chose to leave out *on purpose*. If a decision flips, move it to §4 a
 - Cancellation assist
 - Weekly or monthly digest emails
 - Spend analytics, category breakdowns beyond the list view
-- More than 10 line items per user
+- More than 7 line items per user (free Beta tier; Pro plan will lift the cap)
 - Currencies other than INR
 - Paid tier / team plans / sharing
 - A mobile app
@@ -76,7 +76,7 @@ Loose, ordered by likelihood / value:
 
 - **v1.1** Weekly digest email (`₹X renewing this week`)
 - **v1.2** Email-forwarding ingestion (unique address per user)
-- **v1.3** Remove 10-item cap → freemium tier
+- **v1.3** Pro plan: lift the 7-item Beta cap (or set a much higher Pro cap)
 - **v2**   Gmail OAuth, UPI statement parser, cancellation flows
 
 ## 7. Architecture snapshot
@@ -116,7 +116,7 @@ Planned (MVP) — written to `convex/schema.ts` on 2026-04-25:
 | `users` | `email` | **Placeholder** until Convex Auth is installed; will be replaced by `authTables.users`. Index: `by_email`. |
 | `subscriptions` | `userId`, `vendor`, `category` (slug enum), `amountInr` (paise), `cycle` (enum), `nextRenewal` (ms, start-of-day IST), `confidence?`, `fileId?`, `updatedAt` | Index: `by_user`, `by_user_and_nextRenewal`. Cap 10 per user (enforced in mutation). `fileId` powers "view receipt" within the 24h retention window; goes dangling after cleanup. `_creationTime` covers `createdAt`. |
 | `parseJobs` | `userId`, `fileId?`, `pastedText?`, `extracted?` (parser output, awaiting confirm), `status` ("queued" \| "running" \| "succeeded" \| "failed"), `attempts`, `lastError?` | Short-lived; deleted on user confirm or discard. Index: `by_user_and_status`. |
-| `pendingParses` | `userId`, `extracted` (subscription-shaped), `fileId?`, `status` ("awaiting_review" \| "replaced" \| "discarded") | Triggered when user is at 10-item cap. `extracted` mirrors subscription field shape so a confirmed replace is a straight copy. Index: `by_user_and_status`. |
+| `pendingParses` | `userId`, `extracted` (subscription-shaped), `fileId?`, `status` ("awaiting_review" \| "replaced" \| "discarded") | Triggered when user is at the cap (7 during Beta). `extracted` mirrors subscription field shape so a confirmed replace is a straight copy. Index: `by_user_and_status`. |
 | `alerts` | `userId`, `subscriptionId`, `type` ("day_before"), `sentAt` | Dedup + audit. Index: `by_subscription_and_type`. |
 
 **Storage units & encodings**
@@ -147,7 +147,7 @@ Planned (MVP) — written to `convex/schema.ts` on 2026-04-25:
 
 **Alert timing:** 08:00 IST, the day before `nextRenewal`.
 
-**Item cap:** 10 active subscriptions per user.
+**Item cap:** 7 active subscriptions per user during Beta (was 10 at MVP launch). Lifts when the Pro plan launches.
 
 **File retention:** 24 hours after successful parse.
 
@@ -205,7 +205,7 @@ Append-only. Most recent first. Every material decision gets an entry. Format:
 - **Decision:** When user has 10 items and parses another, result goes to `pendingParses`. User picks which existing item to replace.
 - **Why:** No data loss; user controls the tradeoff; avoids hard-block frustration.
 - **Alternatives:** Hard block with "delete one first" error (worse UX), auto-upgrade to paid tier (no MVP tier exists).
-- **Revisit when:** We remove the 10-item cap in v1.3.
+- **Revisit when:** We remove or change the cap in v1.3 (Pro plan).
 
 ### 2026-04-25 — Parser switched to OpenAI `gpt-4o-mini`
 - **Decision:** Use OpenAI `gpt-4o-mini` via `@ai-sdk/openai` (provider-direct, not via AI Gateway). Supersedes the 2026-04-24 Claude Haiku 4.5 decision below.
@@ -231,7 +231,13 @@ Append-only. Most recent first. Every material decision gets an entry. Format:
 - **Alternatives:** Email forwarding with unique addresses (deferred to v1.2), Gmail OAuth (deferred to v2).
 - **Revisit when:** Users tell us uploading is too high-friction; a meaningful fraction of receipts come via Gmail threads they don't want to open.
 
-### 2026-04-24 — MVP cap: 10 line items per user
+### 2026-04-27 — Beta cap reduced from 10 to 7
+- **Decision:** Reduce the free-tier cap from 10 to 7 in the Beta cohort, ahead of a Pro plan that will lift it.
+- **Why:** The §2 target user has 8–15 active subs, so a 7-cap creates a clean upgrade pitch ("track all of them, not just 7") the moment we ship Pro. 10 was generous enough that the median user might never hit the wall — making the eventual paid pitch weaker. Reducing now (during Beta) is cheaper than reducing later when users would feel it as a takeaway.
+- **Alternatives considered:** Keep 10 (lower upgrade pressure but better word-of-mouth on adoption), drop to 5 (too tight — users would bounce before the "see all your subs" moment, losing them before they're hooked).
+- **Revisit when:** Pro plan ships; we'll set the Pro cap or remove it entirely.
+
+### 2026-04-24 — MVP cap: 10 line items per user *(superseded 2026-04-27)*
 - **Decision:** Hard cap at 10 tracked items for MVP.
 - **Why:** Keeps the mental model simple; forces the "what are you actually paying for?" moment; enables clean replacement UX; bounds parse cost.
 - **Alternatives:** Unlimited (too open-ended for a week-one build), 5 (too few for the target user).
@@ -258,6 +264,7 @@ Append-only. Most recent first. Every material decision gets an entry. Format:
 
 ## 12. Changelog
 
+- **2026-04-27** — Beta cap reduced from 10 to 7 in code (`parseJobs.ts`, `subscriptions.ts`, dashboard UI) and docs (§4, §5, §6 roadmap, §8 data-model note, §9 constants, §11 entry). Existing Beta users with >7 items will not be retroactively trimmed; new add/parse attempts past 7 trigger the replace flow (parse) or hard error (manual entry).
 - **2026-04-25** — Split the live waitlist into its own repo `sunilvijendra/renewl-waitlist` (private, single commit). Vercel project `renewl` (URL `renewls.vercel.app`) reconnected to that repo; Convex deployment `silent-albatross-349` and existing waitlist data are unchanged. Validated end-to-end with a fresh email submission. This repo's `main` branch is now stale waitlist code that will be replaced by the MVP via the eventual `dev/mvp1` → `main` merge.
 - **2026-04-25** — Replaced the waitlist landing on `dev/mvp1` (`/` route) with the MVP product landing: same headline/bullets/trust line, but the email-capture form is now a "Sign in" CTA → `/sign-in` (server-aware: shows "Open dashboard" → `/dashboard` if already authed). `app/waitlist-form.tsx` deleted. `convex/waitlist.ts` and the `waitlist` table kept (preserves data on `silent-albatross-349` until a migration plan lands; harmless on `kindly-quail-882`). Added the prod-promotion pre-merge checklist to §10.
 - **2026-04-25** — Renamed the **dev** Vercel project (formerly `renewls-dev`) to `renewl-live`; URL is now `https://renewl-live.vercel.app`. The live waitlist project (`renewl` on Vercel, URL `renewls.vercel.app`) is unchanged. Updated scope-doc references throughout.

@@ -59,7 +59,7 @@ export default function DashboardPage() {
               <p className="font-sans text-[14px] text-ink">
                 {pendingInbox.length} parse
                 {pendingInbox.length === 1 ? "" : "s"} waiting — you&rsquo;re at
-                the 10-item cap.
+                the 7-item cap.
               </p>
               <Link
                 href={`/dashboard/replace/${pendingInbox[0]._id}`}
@@ -75,7 +75,7 @@ export default function DashboardPage() {
               Your subscriptions
             </h1>
             <span className="font-sans text-[13px] text-ink-soft">
-              {subs ? `${subs.length} of 10` : "—"}
+              {subs ? `${subs.length} of 7` : "—"}
             </span>
           </div>
 

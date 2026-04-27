@@ -157,11 +157,11 @@ export const confirm = mutation({
     const subs = await ctx.db
       .query("subscriptions")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .take(11);
+      .take(8);
 
     const now = Date.now();
 
-    if (subs.length < 10) {
+    if (subs.length < 7) {
       const subscriptionId = await ctx.db.insert("subscriptions", {
         userId,
         vendor: edited.vendor,

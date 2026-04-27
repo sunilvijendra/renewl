@@ -31,7 +31,7 @@ export const listMine = query({
       .query("subscriptions")
       .withIndex("by_user_and_nextRenewal", (q) => q.eq("userId", userId))
       .order("asc")
-      .take(15);
+      .take(10);
     return subs;
   },
 });
@@ -104,9 +104,9 @@ export const createManual = mutation({
     const subs = await ctx.db
       .query("subscriptions")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .take(11);
-    if (subs.length >= 10) {
-      throw new Error("You're at the 10-item cap — delete one first.");
+      .take(8);
+    if (subs.length >= 7) {
+      throw new Error("You're at the 7-item cap — delete one first.");
     }
     const subscriptionId = await ctx.db.insert("subscriptions", {
       ...args,
