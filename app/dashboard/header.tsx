@@ -39,6 +39,12 @@ export function DashboardHeader() {
         {me?.email && (
           <span className="font-sans text-[13px] text-ink-soft">{me.email}</span>
         )}
+        <a
+          href="mailto:renewl@sunilvijendra.com?subject=Renewl%20Beta%20feedback"
+          className="font-sans text-[13px] text-ink-soft hover:text-accent transition-colors"
+        >
+          Feedback
+        </a>
         <button
           type="button"
           onClick={handleSignOut}
