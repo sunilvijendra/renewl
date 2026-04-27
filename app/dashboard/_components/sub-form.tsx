@@ -131,7 +131,7 @@ export function SubForm({
             required
             value={dateValue}
             onChange={(e) => setDateValue(e.target.value)}
-            className="w-full px-3 py-2.5 text-[16px] text-ink bg-paper-deep border border-hairline-strong rounded-sm focus:outline-none focus:border-accent"
+            className="w-full min-w-0 max-w-full appearance-none px-3 py-2.5 text-[16px] text-ink bg-paper-deep border border-hairline-strong rounded-sm focus:outline-none focus:border-accent"
           />
         </Field>
       </div>
@@ -222,7 +222,7 @@ export function SubForm({
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block">
+    <label className="block min-w-0">
       <span className="block font-sans text-[12px] uppercase tracking-[0.14em] text-ink-soft mb-2">
         {label}
       </span>
