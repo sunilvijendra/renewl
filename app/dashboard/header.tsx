@@ -29,8 +29,11 @@ export function DashboardHeader() {
 
   return (
     <header className="mx-auto w-full max-w-[720px] flex items-center justify-between pb-6 border-b border-hairline">
-      <Link href="/dashboard" className="text-ink hover:text-accent transition-colors">
+      <Link href="/dashboard" className="flex items-baseline gap-2.5 text-ink hover:text-accent transition-colors">
         <LogoPlain />
+        <span className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-soft border border-hairline-strong px-1.5 py-0.5 rounded-sm leading-none">
+          Beta
+        </span>
       </Link>
       <div className="flex items-center gap-4">
         {me?.email && (

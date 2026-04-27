@@ -10,7 +10,12 @@ export default async function Page() {
   return (
     <main className="min-h-dvh flex flex-col px-6 sm:px-10 md:px-16 pt-8 sm:pt-10 md:pt-14 pb-12">
       <header className="mx-auto w-full max-w-[640px] md:max-w-[720px] lg:max-w-[780px] flex items-center justify-between">
-        <LogoPlain className="text-ink" />
+        <div className="flex items-baseline gap-2.5">
+          <LogoPlain className="text-ink" />
+          <span className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-soft border border-hairline-strong px-1.5 py-0.5 rounded-sm leading-none">
+            Beta
+          </span>
+        </div>
         <nav className="flex items-center gap-5 sm:gap-7">
           <a
             href="#how-it-works"
