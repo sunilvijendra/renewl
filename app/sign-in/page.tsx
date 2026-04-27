@@ -37,8 +37,14 @@ export default function SignInPage() {
   return (
     <main className="min-h-dvh flex flex-col px-6 sm:px-10 md:px-16 pt-8 sm:pt-10 md:pt-14 pb-12">
       <header className="mx-auto w-full max-w-[520px] flex items-center">
-        <Link href="/" className="text-ink hover:text-accent transition-colors">
+        <Link
+          href="/"
+          className="flex items-baseline gap-2.5 text-ink hover:text-accent transition-colors"
+        >
           <LogoPlain />
+          <span className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-soft border border-hairline-strong px-1.5 py-0.5 rounded-sm leading-none">
+            Beta
+          </span>
         </Link>
       </header>
 
