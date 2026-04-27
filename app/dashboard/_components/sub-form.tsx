@@ -111,7 +111,7 @@ export function SubForm({
         />
       </Field>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="Amount (₹)">
           <input
             type="number"
@@ -137,13 +137,13 @@ export function SubForm({
       </div>
 
       <Field label="Cycle">
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {CYCLE_SLUGS.map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => setCycle(c)}
-              className={`flex-1 px-3 py-2 text-[14px] rounded-sm border transition-colors ${
+              className={`px-3 py-2 text-[14px] rounded-sm border transition-colors ${
                 cycle === c
                   ? "border-accent bg-accent text-paper"
                   : "border-hairline-strong bg-paper-deep text-ink hover:border-accent"
